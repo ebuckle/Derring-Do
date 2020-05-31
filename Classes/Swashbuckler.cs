@@ -1,62 +1,38 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
-using Kingmaker.Blueprints.Classes.Prerequisites;
 using Kingmaker.Blueprints.Classes.Selection;
-using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.Designers.Mechanics.Facts;
+using Kingmaker.EntitySystem.Entities;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
 using Kingmaker.Enums.Damage;
-using Kingmaker.Localization;
 using Kingmaker.RuleSystem;
-using Kingmaker.UI.Common;
+using Kingmaker.RuleSystem.Rules;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
-using Kingmaker.UnitLogic.Abilities.Components;
-using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
-using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.Blueprints.Items.Weapons;
 using Kingmaker.UnitLogic.Commands.Base;
 using Kingmaker.UnitLogic.FactLogic;
 using Kingmaker.UnitLogic.Mechanics;
-using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
-using Kingmaker.Blueprints.Items.Ecnchantments;
 using Kingmaker.UnitLogic.Parts;
 using Kingmaker.Utility;
-using static Kingmaker.UnitLogic.ActivatableAbilities.ActivatableAbilityResourceLogic;
 using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 using Kingmaker.UnitLogic.Abilities.Components.Base;
 using Kingmaker.Blueprints.Items.Armors;
-using Kingmaker.UnitLogic.Abilities.Components.AreaEffects;
-using Kingmaker.UnitLogic.Buffs.Components;
 using Kingmaker.Designers.Mechanics.Buffs;
-using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
-using Kingmaker.ElementsSystem;
-using Kingmaker.UnitLogic.Mechanics.Conditions;
 using Kingmaker.PubSubSystem;
 using Newtonsoft.Json;
 using CallOfTheWild;
 using static CallOfTheWild.Helpers;
-using CallOfTheWild.WeaponTrainingMechanics;
 using CallOfTheWild.ResourceMechanics;
 using CallOfTheWild.NewMechanics;
-using CallOfTheWild.HoldingItemsMechanics;
-using CallOfTheWild.StatReplacementMechanics;
-using Kingmaker.RuleSystem.Rules;
 using Kingmaker.Items;
 using Kingmaker.Items.Slots;
-using System.Runtime.CompilerServices;
-using Harmony12;
-using Kingmaker.RuleSystem.Rules.Damage;
-using Kingmaker.Designers.EventConditionActionSystem.Actions;
+using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 
 namespace Derring_Do
 {
@@ -89,16 +65,57 @@ namespace Derring_Do
         //TODO
         static public BlueprintFeature charmed_life;
 
-        //DONE - TEST
+        //DONE - WORKING
         static public BlueprintFeature nimble_unlock;
 
-        //DONE - TEST
+        //DONE - WORKING
         static public BlueprintFeature swashbuckler_weapon_training;
 
         //DONE - WORKING
         static public BlueprintFeature swashbuckler_weapon_mastery;
 
         // TODO: Deeds
+        static public BlueprintFeature CONSUME_PANACHE_DUMMY;
+
+        //TODO: Test
+        static public BlueprintFeature derring_do_deed;
+
+        static public BlueprintFeature dodging_panache_deed;
+
+        static public BlueprintFeature opportune_parry_and_riposte_deed;
+
+        static public BlueprintFeature kip_up_deed;
+
+        static public BlueprintFeature menacing_swordplay_deed;
+
+        static public BlueprintFeature precise_strike_deed;
+
+        //WORKING
+        static public BlueprintFeature swashbuckler_initiative_deed;
+
+        static public BlueprintFeature swashbucklers_grace_deed;
+
+        static public BlueprintFeature superior_feint_deed;
+
+        static public BlueprintFeature targeted_strike_deed;
+
+        static public BlueprintFeature bleeding_wound_deed;
+
+        static public BlueprintFeature evasive_deed;
+
+        static public BlueprintFeature subtle_blade_deed;
+
+        static public BlueprintFeature dizzying_defence_deed;
+
+        static public BlueprintFeature perfect_thrust_deed;
+
+        static public BlueprintFeature swashbucklers_edge_deed;
+
+        static public BlueprintFeature cheat_death_deed;
+
+        static public BlueprintFeature deadly_stab_deed;
+
+        static public BlueprintFeature stunning_stab_deed;
 
         internal static void createSwashbucklerClass()
         {
@@ -167,6 +184,17 @@ namespace Derring_Do
             createSwashbucklerWeaponMastery();
             // TODO: create methods for Swashbuckler abilities
 
+
+
+
+            //DEBUG ONLY
+            createDummyConsumePanache();
+
+            //DEEDS
+            createDerringDoDeed();
+            createDodgingPanacheDeed();
+            createSwashbucklerInitiativeDeed();
+
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
                                                            swashbuckler_class.Description,
@@ -175,9 +203,9 @@ namespace Derring_Do
                                                            FeatureGroup.None);
             swashbuckler_progression.Classes = getSwashbucklerArray();
 
-            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache),
+            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, derring_do_deed, dodging_panache_deed, CONSUME_PANACHE_DUMMY),
                                                                        LevelEntry(2, charmed_life),
-                                                                       LevelEntry(3, nimble_unlock),
+                                                                       LevelEntry(3, nimble_unlock, swashbuckler_initiative_deed),
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
                                                                        LevelEntry(5, swashbuckler_weapon_training),
                                                                        LevelEntry(6, charmed_life),
@@ -233,7 +261,9 @@ namespace Derring_Do
                                     "2d4095f5959e458b918515b8a21e3a54",
                                     null, //TODO: icon
                                     FeatureGroup.None,
-                                    CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource),
+                                    panache_resource.CreateAddAbilityResource()
+                                    //TODO - cleanup to use boolean method instead
+                                    /*
                                     Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Dagger),
                                     Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.PunchingDagger),
                                     Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.LightPick),
@@ -256,6 +286,7 @@ namespace Derring_Do
                                     Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Starknife),
                                     Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Estoc),
                                     Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Tongi)
+                                    */
                                     );
 
             //TODO: Deeds
@@ -309,7 +340,7 @@ namespace Derring_Do
                                                                 charmed_life_buff.Icon,
                                                                 charmed_life_buff,
                                                                 AbilityActivationType.Immediately,
-                                                                UnitCommand.CommandType.Swift,
+                                                                UnitCommand.CommandType.Swift, //TODO DECIDE ACTION/REMOVING BUFF ON USE
                                                                 null,
                                                                 CallOfTheWild.Helpers.CreateActivatableResourceLogic(charmed_life_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
                                                                 );
@@ -401,6 +432,120 @@ namespace Derring_Do
                                                         Create<CritAutoconfirmWithSwashbucklerWeapons>(),
                                                         Create<IncreasedCriticalMultiplierWithSwashbucklerWeapon>()
                                                         );
+        }
+
+        //DEEDS
+        static void createDerringDoDeed()
+        {
+            var derring_do_buff = CreateBuff("DerringDoSwashbucklerBuff",
+                                             "Derring-Do",
+                                             "At 1st level, a swashbuckler can spend 1 panache point when she makes an Athletics or Mobility check to roll 1d6 and add the result to the check. She can do this after she makes the check but before the result is revealed. If the result of the d6 roll is a natural 6, she rolls another 1d6 and adds it to the check. She can continue to do this as long as she rolls natural 6s, up to a number of times equal to her Dexterity modifier (minimum 1).",
+                                             "1ec72614c5fe40deba1fd3553124389b",
+                                             null, // TODO - icon
+                                             null,
+                                             Create<AddExplodingD6sToDerringDoSkillChecks>()
+                                             );
+
+            var derring_do_ability = CreateActivatableAbility("DerringDoSwashbucklerToggleAbility",
+                                                              derring_do_buff.Name,
+                                                              derring_do_buff.Description,
+                                                              "82ead78f2a1d4d2488a618aeef891c84",
+                                                              derring_do_buff.Icon,
+                                                              derring_do_buff,
+                                                              AbilityActivationType.Immediately,
+                                                              UnitCommand.CommandType.Free,
+                                                              null,
+                                                              CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                              );
+            derring_do_ability.DeactivateImmediately = true;
+
+            derring_do_deed = CreateFeature("DerringDoSwashbucklerFeature",
+                                            derring_do_buff.Name,
+                                            derring_do_buff.Description,
+                                            "9633db59939c4a73bbd780809c6c9c98",
+                                            derring_do_buff.Icon,
+                                            FeatureGroup.None,
+                                            CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource),
+                                            CallOfTheWild.Helpers.CreateAddFact(derring_do_ability)
+                                            );
+        }
+
+        static void createDodgingPanacheDeed()
+        {
+            var dodging_panache_buff = CreateBuff("DodgingPanacheSwashbucklerBuff",
+                                                  "Dodging Panache",
+                                                  "At 1st level, when an opponent attempts a melee attack against the swashbuckler, the swashbuckler can as an immediate action spend 1 panache point to gain a dodge bonus to AC equal to her Charisma modifier (minimum 0) against the triggering attack. The swashbuckler can only perform this deed while wearing light or no armor.",
+                                                  "c466576d4a784d3f94300e08afa57784",
+                                                  null, //TODO - icon
+                                                  null, //TODO - animation
+                                                  Create<AddACBonusOnAttackAndConsumePanache>()
+                                                  );
+            var apply_buff = Common.createContextActionApplyBuff(dodging_panache_buff, CreateContextDuration(1), dispellable: false);
+
+            var dodging_panache_ability = CreateAbility("DodgingPanacheSwashbucklerAbility",
+                                                        dodging_panache_buff.Name,
+                                                        dodging_panache_buff.Description,
+                                                        "59d6029a297c4798b0d2c44b68b983a6",
+                                                        dodging_panache_buff.Icon,
+                                                        AbilityType.Extraordinary,
+                                                        CommandType.Swift,
+                                                        AbilityRange.Personal,
+                                                        oneRoundDuration,
+                                                        "",
+                                                        CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource),
+                                                        CreateRunActions(apply_buff),
+                                                        Create<AbilityCasterLightOrNoArmorCheck>(),
+                                                        Create<AbilityCasterInCombat>()
+                                                        );
+            dodging_panache_ability.setMiscAbilityParametersSelfOnly();
+
+            dodging_panache_deed = CreateFeature("DodgingPanacheSwashbucklerFeature",
+                                                 dodging_panache_buff.Name,
+                                                 dodging_panache_buff.Description,
+                                                 "316d0a03c3fc4b539edadbaa2089c747",
+                                                 dodging_panache_buff.Icon,
+                                                 FeatureGroup.None,
+                                                 CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource),
+                                                 CallOfTheWild.Helpers.CreateAddFact(dodging_panache_ability)
+                                                 );
+        }
+
+        static void createSwashbucklerInitiativeDeed()
+        {
+            swashbuckler_initiative_deed = CreateFeature("SwashbucklerInitiativeDeedSwashbucklerFeature",
+                                                         "Swashbuckler Initiative",
+                                                         "At 3rd level, while the swashbuckler has at least 1 panache point, she gains a +2 bonus on initiative checks.",
+                                                         "7afa78acfbe142ff99125c2a2e253362",
+                                                         null, //TODO icon
+                                                         FeatureGroup.None
+                                                         );
+
+            swashbuckler_initiative_deed.AddComponent(Create<AddStaticBonusOnInitiativeCheckIfResourceAvailable>(a => { a.amount = 1; a.bonus = 2; a.resource = panache_resource; }));
+        }
+
+        static void createDummyConsumePanache()
+        {
+            var CONSUME_PANACHE_DUMMY_ABILITY = CreateActivatableAbility("DUMMYCONSUMEPANACHEABILITY",
+                                                                        "CONSUME PANACHE",
+                                                                        "CONSUME 1 PANACHE - TESTING ONLY",
+                                                                        "bf8adf354ae947338247ed22f334a671",
+                                                                        null,
+                                                                        null,
+                                                                        AbilityActivationType.Immediately,
+                                                                        UnitCommand.CommandType.Free,
+                                                                        null,
+                                                                        CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.TurnOn)
+                                                                        );
+
+            CONSUME_PANACHE_DUMMY = CreateFeature("DUMMYCONSUMEPANACHEFEATURE",
+                                                  "CONSUME PANACHE",
+                                                  "CONSUME 1 PANACHE - TESTING ONLY",
+                                                  "a04d66b87034493f8391f1e0614004f9",
+                                                  null,
+                                                  FeatureGroup.None,
+                                                  Helpers.CreateAddFact(CONSUME_PANACHE_DUMMY_ABILITY),
+                                                  CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource)
+                                                  );
         }
 
         //COMPONENTS AND HELPERS
@@ -560,6 +705,169 @@ namespace Derring_Do
                 {
                     __result = rank;
                 }
+            }
+        }
+
+
+        // TODO - CONSIDER HARD CODING VALUES SINCE ONLY USED ONCE
+        [ComponentName("Add Static Bonus On Initiative Check If ResourceAvailable")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        [AllowMultipleComponents]
+        public class AddStaticBonusOnInitiativeCheckIfResourceAvailable : RuleInitiatorLogicComponent<RuleInitiativeRoll>
+        {
+            public BlueprintAbilityResource resource;
+            public int amount;
+            public int bonus;
+
+            private int getResourceAmount(RuleInitiativeRoll evt)
+            {
+                // TODO - Cost reduction feats
+                return amount > 0 ? amount : 0;
+            }
+
+            public override void OnEventAboutToTrigger(RuleInitiativeRoll evt)
+            {
+                Main.logger.Log("About to roll initiative");
+
+                int need_resource = getResourceAmount(evt);
+
+                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                {
+                    Main.logger.Log("Not enough resource - had " + evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
+                    return;
+                }
+                Main.logger.Log("Adding bonus of " + bonus + " to the roll.");
+                evt.AddTemporaryModifier(Owner.Stats.Initiative.AddModifier(bonus, this, ModifierDescriptor.UntypedStackable));
+            }
+
+            public override void OnEventDidTrigger(RuleInitiativeRoll evt)
+            {
+            }
+        }
+
+        [ComponentName("Add Exploding D6s on Derring-Do Skills and Spend Panache")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        [AllowMultipleComponents]
+        public class AddExplodingD6sToDerringDoSkillChecks : RuleInitiatorLogicComponent<RuleSkillCheck>
+        {
+            public BlueprintAbilityResource resource = panache_resource;
+            private int cost = 1;
+            private int will_spend = 0;
+            private StatType[] stats = { StatType.SkillMobility, StatType.SkillAthletics };
+
+            private int getResourceCost(RuleSkillCheck evt)
+            {
+                // TODO - Cost reduction feats
+                return cost > 0 ? cost : 0;
+            }
+
+            private int calculateExplodingDice(RuleSkillCheck evt)
+            {
+                int total = 0;
+                DiceFormula dice_formula = new DiceFormula(1, DiceType.D6);
+                RuleRollDice rule = new RuleRollDice(evt.Initiator, dice_formula);
+                int roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
+                total += roll;
+                if (roll == 6)
+                {
+                    Main.logger.Log("First roll was a 6!");
+                    int attempts = Owner.Stats.Dexterity.Bonus > 0 ? Owner.Stats.Dexterity.Bonus : 1;
+                    for (int x = 0; x < attempts; x++)
+                    {
+                        roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
+                        total += roll;
+                        Main.logger.Log("Roll " + x+2 + " was a " + roll);
+                        if (roll != 6)
+                        {
+                            break;
+                        }
+                    }
+                }
+                return total;
+            }
+
+            public override void OnEventAboutToTrigger(RuleSkillCheck evt)
+            {
+                Main.logger.Log("About to roll Derring-Do check");
+                will_spend = 0;
+                int need_resource = getResourceCost(evt);
+                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                {
+                    return;
+                }
+
+                will_spend = need_resource;
+
+                int result = calculateExplodingDice(evt);
+                evt.Bonus.AddModifier(result, this, ModifierDescriptor.UntypedStackable);
+            }
+
+            public override void OnEventDidTrigger(RuleSkillCheck evt)
+            {
+                if (will_spend > 0)
+                {
+                    evt.Initiator.Descriptor.Resources.Spend(resource, will_spend);
+                }
+                will_spend = 0;
+            }
+        }
+
+        [ComponentName("Add Dodge Bonus to AC Against Attack")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        [AllowMultipleComponents]
+        public class AddACBonusOnAttackAndConsumePanache : RuleInitiatorLogicComponent<RuleCalculateAC>
+        {
+            private int cost = 1;
+            private int bonus;
+            private int will_spend = 0;
+            public BlueprintAbilityResource resource = panache_resource;
+
+            private int getResourceCost(RuleCalculateAC evt)
+            {
+                // TODO - Cost reduction feats
+                return cost > 0 ? cost : 0;
+            }
+
+            public override void OnEventAboutToTrigger(RuleCalculateAC evt)
+            {
+                will_spend = 0;
+                int need_resource = getResourceCost(evt);
+                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                {
+                    return;
+                }
+
+                will_spend = need_resource;
+
+                bonus = Owner.Stats.Charisma.Bonus > 0 ? Owner.Stats.Charisma.Bonus : 0;
+                evt.AddBonus(bonus, this.Fact);
+            }
+
+            public override void OnEventDidTrigger(RuleCalculateAC evt)
+            {
+                if (will_spend > 0)
+                {
+                    evt.Initiator.Descriptor.Resources.Spend(resource, will_spend);
+                }
+                will_spend = 0;
+            }
+        }
+
+        [ComponentName("Check Caster is Wearing Light or No Armor and is at Light Load")]
+        [AllowedOn(typeof(BlueprintAbility))]
+        public class AbilityCasterLightOrNoArmorCheck: BlueprintComponent, IAbilityCasterChecker
+        {
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                if ((!caster.Body.Armor.HasArmor || !caster.Body.Armor.Armor.Blueprint.IsArmor) || (caster.Body.Armor.Armor.Blueprint.ProficiencyGroup == ArmorProficiencyGroup.Light))
+                {
+                    return true;
+                }
+                return false;
+            }
+            public string GetReason()
+            {
+                return "Require light or no armor.";
             }
         }
     }
