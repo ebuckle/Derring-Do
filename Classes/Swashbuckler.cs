@@ -33,6 +33,11 @@ using CallOfTheWild.NewMechanics;
 using Kingmaker.Items;
 using Kingmaker.Items.Slots;
 using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
+using System.Linq;
+using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.UnitLogic.Mechanics.Actions;
+using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.ElementsSystem;
 
 namespace Derring_Do
 {
@@ -49,6 +54,7 @@ namespace Derring_Do
 
         //TEST - DEEDS
         static public BlueprintFeature panache;
+        static public ContextRestoreResource restore_panache;
 
         //TEST - DEEDS
         static public BlueprintAbilityResource panache_resource;
@@ -80,6 +86,7 @@ namespace Derring_Do
         //TODO: Test
         static public BlueprintFeature derring_do_deed;
 
+        //TODO: Testing
         static public BlueprintFeature dodging_panache_deed;
 
         static public BlueprintFeature opportune_parry_and_riposte_deed;
@@ -251,7 +258,7 @@ namespace Derring_Do
             panache_resource.AddComponent(Create<MinResourceAmount>(m => m.value = 1));
             panache_resource.SetIncreasedByStat(0, StatType.Charisma);
 
-            var regainPanache = Create<ContextRestoreResource>(c => { c.amount = 1; c.Resource = panache_resource; });
+            restore_panache = Create<ContextRestoreResource>(c => { c.amount = 1; c.Resource = panache_resource; });
 
             panache = CreateFeature("PanacheFeature",
                                     "Panache",
@@ -318,7 +325,9 @@ namespace Derring_Do
             var charmed_life_resource = CreateAbilityResource("SwashbucklerCharmedLifeResource", "", "", "cdaca00ebd144d8b870390fb6a09640f", null);
             charmed_life_resource.SetIncreasedByLevelStartPlusDivStep(3, 2, 0, 4, 1, 0, 0.0f, getSwashbucklerArray());
 
-            var consume_resource = CreateActionList(Common.createContextActionSpendResource(charmed_life_resource, 1));
+            var consume_resource = Common.createContextActionSpendResource(charmed_life_resource, 1);
+
+            var restore_resource = Create<ContextRestoreResource>(c => { c.amount = 1; c.Resource = charmed_life_resource; });
 
             var charmed_life_buff = CreateBuff("CharmedLifeSwashbucklerBuff",
                                                "Charmed Life",
@@ -330,21 +339,25 @@ namespace Derring_Do
                                                CreateAddContextStatBonus(StatType.SaveReflex, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
                                                CreateAddContextStatBonus(StatType.SaveWill, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
                                                CreateContextRankConfig(baseValueType: ContextRankBaseValueType.StatBonus, stat: StatType.Charisma, min: 0, type: AbilityRankType.StatBonus),
-                                               Create<CallOfTheWild.NewMechanics.AddInitiatorSavingThrowTrigger>(a => { a.Action = consume_resource; a.OnFail = true; a.OnPass = true; })
+                                               Create<CallOfTheWild.NewMechanics.AddInitiatorSavingThrowTrigger>(a => { a.Action = Helpers.CreateActionList(consume_resource, CallOfTheWild.Helpers.Create<ContextActionRemoveSelf>()); a.OnFail = true; a.OnPass = true; })
                                                );
 
-            var charmed_life_ability = CreateActivatableAbility("CharmedLifeSwashbucklerToggleAbility",
-                                                                charmed_life_buff.Name,
-                                                                charmed_life_buff.Description,
-                                                                "8f39d4572fa944cbbaad256c44bc5fcc",
-                                                                charmed_life_buff.Icon,
-                                                                charmed_life_buff,
-                                                                AbilityActivationType.Immediately,
-                                                                UnitCommand.CommandType.Swift, //TODO DECIDE ACTION/REMOVING BUFF ON USE
-                                                                null,
-                                                                CallOfTheWild.Helpers.CreateActivatableResourceLogic(charmed_life_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
-                                                                );
-            charmed_life_ability.DeactivateImmediately = true;
+            var apply_buff = Common.createContextActionApplyBuff(charmed_life_buff, CreateContextDuration(1), dispellable: false);
+
+            var charmed_life_ability = CreateAbility("CharmedLifeSwashbucklerAbility",
+                                                     charmed_life_buff.Name,
+                                                     charmed_life_buff.Description,
+                                                     "8f39d4572fa944cbbaad256c44bc5fcc",
+                                                     charmed_life_buff.Icon,
+                                                     AbilityType.Extraordinary,
+                                                     CommandType.Swift,
+                                                     AbilityRange.Personal,
+                                                     oneRoundDuration,
+                                                     "",
+                                                     CreateRunActions(new GameAction[] { apply_buff, restore_resource }),
+                                                     Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = charmed_life_resource; })
+                                                     );
+            charmed_life_ability.setMiscAbilityParametersSelfOnly();
 
             charmed_life = CreateFeature("CharmedLifeSwashbucklerFeature",
                                          "Charmed Life",
@@ -355,8 +368,6 @@ namespace Derring_Do
                                          CallOfTheWild.Helpers.CreateAddAbilityResource(charmed_life_resource),
                                          CallOfTheWild.Helpers.CreateAddFact(charmed_life_ability)
                                          );
-
-            charmed_life.HideInCharacterSheetAndLevelUp = true;
         }
 
         static void createNimble()
@@ -492,10 +503,9 @@ namespace Derring_Do
                                                         AbilityRange.Personal,
                                                         oneRoundDuration,
                                                         "",
-                                                        CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource),
-                                                        CreateRunActions(apply_buff),
+                                                        CreateRunActions(new GameAction[] { apply_buff, restore_panache }),
                                                         Create<AbilityCasterLightOrNoArmorCheck>(),
-                                                        Create<AbilityCasterInCombat>()
+                                                        Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
                                                         );
             dodging_panache_ability.setMiscAbilityParametersSelfOnly();
 
@@ -747,6 +757,7 @@ namespace Derring_Do
 
         [ComponentName("Add Exploding D6s on Derring-Do Skills and Spend Panache")]
         [AllowedOn(typeof(BlueprintUnitFact))]
+        [AllowedOn(typeof(BlueprintBuff))]
         [AllowMultipleComponents]
         public class AddExplodingD6sToDerringDoSkillChecks : RuleInitiatorLogicComponent<RuleSkillCheck>
         {
@@ -768,15 +779,17 @@ namespace Derring_Do
                 RuleRollDice rule = new RuleRollDice(evt.Initiator, dice_formula);
                 int roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
                 total += roll;
+                Main.logger.Log("Roll 1 was a " + roll);
                 if (roll == 6)
                 {
-                    Main.logger.Log("First roll was a 6!");
+                    Main.logger.Log("Exploding!");
                     int attempts = Owner.Stats.Dexterity.Bonus > 0 ? Owner.Stats.Dexterity.Bonus : 1;
                     for (int x = 0; x < attempts; x++)
                     {
+                        rule = new RuleRollDice(evt.Initiator, dice_formula);
                         roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
                         total += roll;
-                        Main.logger.Log("Roll " + x+2 + " was a " + roll);
+                        Main.logger.Log("Extra attempt " + x + " was a " + roll);
                         if (roll != 6)
                         {
                             break;
@@ -790,15 +803,27 @@ namespace Derring_Do
             {
                 Main.logger.Log("About to roll Derring-Do check");
                 will_spend = 0;
+
+                if (!stats.Contains(evt.StatType))
+                {
+                    Main.logger.Log("Not an Athletics or Mobility check");
+                    return;
+                }
+                Main.logger.Log("Is an Athletics or Mobility check");
+
                 int need_resource = getResourceCost(evt);
+                Main.logger.Log("Will cost " + need_resource);
+
                 if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
                 {
+                    Main.logger.Log("Not enough resource - had " + evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
                     return;
                 }
 
                 will_spend = need_resource;
 
                 int result = calculateExplodingDice(evt);
+                Main.logger.Log("Adding bonus of " + result + " to check");
                 evt.Bonus.AddModifier(result, this, ModifierDescriptor.UntypedStackable);
             }
 
@@ -806,6 +831,7 @@ namespace Derring_Do
             {
                 if (will_spend > 0)
                 {
+                    Main.logger.Log("Spending " + will_spend + " panache");
                     evt.Initiator.Descriptor.Resources.Spend(resource, will_spend);
                 }
                 will_spend = 0;
@@ -814,40 +840,56 @@ namespace Derring_Do
 
         [ComponentName("Add Dodge Bonus to AC Against Attack")]
         [AllowedOn(typeof(BlueprintUnitFact))]
+        [AllowedOn(typeof(BlueprintBuff))]
         [AllowMultipleComponents]
-        public class AddACBonusOnAttackAndConsumePanache : RuleInitiatorLogicComponent<RuleCalculateAC>
+        public class AddACBonusOnAttackAndConsumePanache : RuleTargetLogicComponent<RuleAttackWithWeapon>
         {
             private int cost = 1;
             private int bonus;
             private int will_spend = 0;
             public BlueprintAbilityResource resource = panache_resource;
+            public ActionList ActionOnSelf = CreateActionList(Create<ContextActionRemoveSelf>());
 
-            private int getResourceCost(RuleCalculateAC evt)
+            private int getResourceCost(RuleAttackWithWeapon evt)
             {
                 // TODO - Cost reduction feats
                 return cost > 0 ? cost : 0;
             }
 
-            public override void OnEventAboutToTrigger(RuleCalculateAC evt)
+            public override void OnEventAboutToTrigger(RuleAttackWithWeapon evt)
             {
+                Main.logger.Log("About to calculate AC");
+                if (!evt.Weapon.Blueprint.IsMelee)
+                {
+                    Main.logger.Log("Attack was not with a melee weapon");
+                    return;
+                }
                 will_spend = 0;
                 int need_resource = getResourceCost(evt);
-                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
                 {
+                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
                     return;
                 }
 
                 will_spend = need_resource;
 
                 bonus = Owner.Stats.Charisma.Bonus > 0 ? Owner.Stats.Charisma.Bonus : 0;
-                evt.AddBonus(bonus, this.Fact);
+                Main.logger.Log("Adding bonus of " + bonus + " to AC");
+                evt.AddTemporaryModifier(evt.Target.Stats.AC.AddModifier(bonus, this, ModifierDescriptor.Dodge));
             }
 
-            public override void OnEventDidTrigger(RuleCalculateAC evt)
+            public override void OnEventDidTrigger(RuleAttackWithWeapon evt)
             {
                 if (will_spend > 0)
                 {
-                    evt.Initiator.Descriptor.Resources.Spend(resource, will_spend);
+                    Main.logger.Log("Spending " + will_spend + " panache");
+                    evt.Target.Descriptor.Resources.Spend(resource, will_spend);
+                }
+                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
+                if (factContextOwner != null)
+                {
+                    factContextOwner.RunActionInContext(this.ActionOnSelf, evt.Initiator);
                 }
                 will_spend = 0;
             }
