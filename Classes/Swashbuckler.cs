@@ -32,12 +32,16 @@ using CallOfTheWild.ResourceMechanics;
 using CallOfTheWild.NewMechanics;
 using Kingmaker.Items;
 using Kingmaker.Items.Slots;
-using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 using System.Linq;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.ElementsSystem;
+using Kingmaker.Controllers.Combat;
+using Kingmaker;
+using UnityEngine;
+using Kingmaker.Visual.Animation.Kingmaker.Actions;
+using Kingmaker.Controllers.Units;
 
 namespace Derring_Do
 {
@@ -200,6 +204,7 @@ namespace Derring_Do
             //DEEDS
             createDerringDoDeed();
             createDodgingPanacheDeed();
+            createOpportuneParryAndRiposte();
             createSwashbucklerInitiativeDeed();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
@@ -210,7 +215,7 @@ namespace Derring_Do
                                                            FeatureGroup.None);
             swashbuckler_progression.Classes = getSwashbucklerArray();
 
-            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, derring_do_deed, dodging_panache_deed, CONSUME_PANACHE_DUMMY),
+            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, CONSUME_PANACHE_DUMMY),
                                                                        LevelEntry(2, charmed_life),
                                                                        LevelEntry(3, nimble_unlock, swashbuckler_initiative_deed),
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
@@ -235,7 +240,8 @@ namespace Derring_Do
             swashbuckler_progression.UIGroups = new UIGroup[] { CreateUIGroup(fighter_feat),
                                                                 CreateUIGroup(nimble_unlock),
                                                                 CreateUIGroup(swashbuckler_weapon_training),
-                                                                CreateUIGroup(charmed_life)
+                                                                CreateUIGroup(charmed_life),
+                                                                CreateUIGroup(derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed)
                                                                 };
         }
 
@@ -520,6 +526,48 @@ namespace Derring_Do
                                                  );
         }
 
+        static void createOpportuneParryAndRiposte()
+        {
+            var opportune_parry_and_riposte_buff = CreateBuff("OpportuneParryAndRiposteSwashbucklerBuff",
+                                                              "Opportune Parry and Riposte",
+                                                              "At 1st level, when an opponent makes a melee attack against the swashbuckler, she can spend 1 panache point and expend a use of an attack of opportunity to attempt to parry that attack. The swashbuckler makes an attack roll as if she were making an attack of opportunity; for each size category the attacking creature is larger than the swashbuckler, the swashbuckler takes a –2 penalty on this roll. If her result is greater than the attacking creature’s result, the creature’s attack automatically misses. The swashbuckler must declare the use of this ability after the creature’s attack is announced, but before its attack roll is made. Upon performing a successful parry and if she has at least 1 panache point, the swashbuckler can as an immediate action make an attack against the creature whose attack she parried, provided that creature is within her reach. This deed’s cost cannot be reduced by any ability or effect that reduces the number of panache points a deed costs.",
+                                                              "a48086ca55a7472284780720a79deb03",
+                                                              null, //TODO icon
+                                                              null, //TODO fx
+                                                              Create<SwashbucklerParryAndRiposte>(s => s.AttackerCondition = null)
+                                                              );
+
+            var apply_buff = Common.createContextActionApplyBuff(opportune_parry_and_riposte_buff, CreateContextDuration(1), dispellable: false);
+
+            var opportune_parry_and_riposte_ability = CreateAbility("OpportuneParryAndRiposteAbility",
+                                                                    opportune_parry_and_riposte_buff.Name,
+                                                                    opportune_parry_and_riposte_buff.Description,
+                                                                    "5b048c5e44904f5382d968d0d2f561d2",
+                                                                    opportune_parry_and_riposte_buff.Icon, //TODO Icon
+                                                                    AbilityType.Extraordinary,
+                                                                    CommandType.Swift,
+                                                                    AbilityRange.Personal,
+                                                                    oneRoundDuration,
+                                                                    "",
+                                                                    CreateRunActions(new GameAction[] { apply_buff, restore_panache }),
+                                                                    Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
+                                                                    );
+            opportune_parry_and_riposte_ability.setMiscAbilityParametersSelfOnly();
+
+            opportune_parry_and_riposte_deed = CreateFeature("OpportuneParryAndRiposteSwashbucklerFeature",
+                                                             opportune_parry_and_riposte_buff.Name,
+                                                             opportune_parry_and_riposte_buff.Description,
+                                                             "8b609cbb9b754b0da070af3933cd2f69",
+                                                             opportune_parry_and_riposte_buff.Icon,
+                                                             FeatureGroup.None,
+                                                             CallOfTheWild.Helpers.CreateAddFact(opportune_parry_and_riposte_ability)
+                                                             );
+        }
+
+        static void createKipUpDeed()
+        {
+        }
+
         static void createSwashbucklerInitiativeDeed()
         {
             swashbuckler_initiative_deed = CreateFeature("SwashbucklerInitiativeDeedSwashbucklerFeature",
@@ -559,7 +607,7 @@ namespace Derring_Do
         }
 
         //COMPONENTS AND HELPERS
-
+        //TODO - move components to Components.cs
         // TODO - DERVISH DANCE ETC EDGE CASES
         static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon)
         {
@@ -858,7 +906,7 @@ namespace Derring_Do
 
             public override void OnEventAboutToTrigger(RuleAttackWithWeapon evt)
             {
-                Main.logger.Log("About to calculate AC");
+                Main.logger.Log("About to be attacked");
                 if (!evt.Weapon.Blueprint.IsMelee)
                 {
                     Main.logger.Log("Attack was not with a melee weapon");
@@ -911,6 +959,98 @@ namespace Derring_Do
             {
                 return "Require light or no armor.";
             }
+        }
+
+        [ComponentName("Swashbuckler Parry and Riposte")]
+        [AllowedOn(typeof(BlueprintBuff))]
+        public class SwashbucklerParryAndRiposte : OwnedGameLogicComponent<UnitDescriptor>, IGlobalRulebookHandler<RuleAttackRoll>, IRulebookHandler<RuleAttackRoll>, IGlobalRulebookSubscriber
+        {
+            public void OnEventAboutToTrigger(RuleAttackRoll evt)
+            {
+                Main.logger.Log("Incoming attack!");
+                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < cost)
+                {
+                    return;
+                }
+                if (!evt.Weapon.Blueprint.IsMelee || evt.Parry != null || !base.Owner.Unit.IsEnemy(evt.Initiator))
+                {
+                    return;
+                }
+                if (evt.Target != base.Owner.Unit)
+                {
+                    return;
+                }
+                if (!base.Owner.Unit.IsReach(evt.Target, base.Owner.Body.PrimaryHand))
+                {
+                    return;
+                }
+                //TODO - Conditions?
+                /*
+                if (this.AttackerCondition.HasConditions)
+                {
+                    MechanicsContext maybeContext = base.Fact.MaybeContext;
+                    using ((maybeContext != null) ? maybeContext.GetDataScope(evt.Initiator) : null)
+                    {
+                        if (!this.AttackerCondition.Check(null))
+                        {
+                            return;
+                        }
+                    }
+                }
+                */
+                evt.TryParry(base.Owner.Unit, base.Owner.Body.PrimaryHand.Weapon, 0);
+                if (evt.Parry == null)
+                {
+                    return;
+                }
+                ModifiableValue additionalAttackBonus = base.Owner.Stats.AdditionalAttackBonus;
+                int num = evt.Initiator.Descriptor.State.Size - base.Owner.State.Size;
+                if (num > 0)
+                {
+                    int value = -2 * num;
+                    evt.AddTemporaryModifier(additionalAttackBonus.AddModifier(value, this, ModifierDescriptor.Penalty));
+                }
+            }
+
+            public void OnEventDidTrigger(RuleAttackRoll evt)
+            {
+                RuleAttackRoll.ParryData parry = evt.Parry;
+                if (((parry != null) ? parry.Initiator : null) != base.Owner.Unit)
+                {
+                    return;
+                }
+
+                if (!evt.Parry.IsTriggered)
+                {
+                    return;
+                }
+
+                evt.Target.Descriptor.Resources.Spend(resource, cost);
+
+                if (evt.Result == AttackResult.Parried && evt.Target.Descriptor.Resources.GetResourceAmount(resource) >= cost)
+                {
+                    Game.Instance.CombatEngagementController.ForceAttackOfOpportunity(base.Owner.Unit, evt.Initiator);
+                }
+
+                //base.Owner.RemoveFact(base.Fact); Unsure what this does in context of original parry
+
+                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
+                if (factContextOwner != null)
+                {
+                    factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
+                }
+            }
+
+            //TODO Conditions
+            public ConditionsChecker AttackerCondition;
+
+            private enum TargetType
+            {
+                Self
+            }
+
+            private BlueprintAbilityResource resource = panache_resource;
+            private int cost = 1;
         }
     }
 }
