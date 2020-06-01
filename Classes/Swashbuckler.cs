@@ -42,6 +42,10 @@ using Kingmaker;
 using UnityEngine;
 using Kingmaker.Visual.Animation.Kingmaker.Actions;
 using Kingmaker.Controllers.Units;
+using CallOfTheWild.AooMechanics;
+using Discord;
+using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
+using Kingmaker.Designers.EventConditionActionSystem.Actions;
 
 namespace Derring_Do
 {
@@ -62,6 +66,8 @@ namespace Derring_Do
 
         //TEST - DEEDS
         static public BlueprintAbilityResource panache_resource;
+
+        static public BlueprintFeature deeds;
 
         //DONE
         static public BlueprintFeatureSelection fighter_feat;
@@ -93,15 +99,19 @@ namespace Derring_Do
         //TODO: Testing
         static public BlueprintFeature dodging_panache_deed;
 
+        //TODO: Testing - 2nd attack roll?
         static public BlueprintFeature opportune_parry_and_riposte_deed;
 
+        //TODO: Testing - refine animation
         static public BlueprintFeature kip_up_deed;
 
+        //DONE
         static public BlueprintFeature menacing_swordplay_deed;
 
+        //DONE working
         static public BlueprintFeature precise_strike_deed;
 
-        //WORKING
+        //DONE WORKING
         static public BlueprintFeature swashbuckler_initiative_deed;
 
         static public BlueprintFeature swashbucklers_grace_deed;
@@ -186,6 +196,7 @@ namespace Derring_Do
             createSwashbucklerProficiencies();
             createNimble();
             createPanachePoolAndDeeds();
+            createDeeds();
             createSwashbucklerFinesse();
             createCharmedLife();
             createSwashbucklerFighterFeatPrerequisiteReplacement();
@@ -202,9 +213,13 @@ namespace Derring_Do
             createDummyConsumePanache();
 
             //DEEDS
+            
             createDerringDoDeed();
             createDodgingPanacheDeed();
             createOpportuneParryAndRiposte();
+            createKipUpDeed();
+            createMenacingSwordplayDeed();
+            createPreciseStrikeDeed();
             createSwashbucklerInitiativeDeed();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
@@ -215,9 +230,9 @@ namespace Derring_Do
                                                            FeatureGroup.None);
             swashbuckler_progression.Classes = getSwashbucklerArray();
 
-            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, CONSUME_PANACHE_DUMMY),
+            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds, derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, CONSUME_PANACHE_DUMMY),
                                                                        LevelEntry(2, charmed_life),
-                                                                       LevelEntry(3, nimble_unlock, swashbuckler_initiative_deed),
+                                                                       LevelEntry(3, nimble_unlock, kip_up_deed, menacing_swordplay_deed, precise_strike_deed, swashbuckler_initiative_deed),
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
                                                                        LevelEntry(5, swashbuckler_weapon_training),
                                                                        LevelEntry(6, charmed_life),
@@ -236,12 +251,15 @@ namespace Derring_Do
                                                                        LevelEntry(19, nimble_unlock),
                                                                        LevelEntry(20, fighter_feat, swashbuckler_weapon_mastery),
                                                                        };
-            swashbuckler_progression.UIDeterminatorsGroup = new BlueprintFeatureBase[] { swashbuckler_proficiencies, swashbuckler_finesse, panache };
+            swashbuckler_progression.UIDeterminatorsGroup = new BlueprintFeatureBase[] { swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds };
             swashbuckler_progression.UIGroups = new UIGroup[] { CreateUIGroup(fighter_feat),
                                                                 CreateUIGroup(nimble_unlock),
                                                                 CreateUIGroup(swashbuckler_weapon_training),
                                                                 CreateUIGroup(charmed_life),
-                                                                CreateUIGroup(derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed)
+                                                                //TODO - experiment with UI layouts
+                                                                CreateUIGroup(derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, kip_up_deed, swashbuckler_initiative_deed),
+                                                                CreateUIGroup(menacing_swordplay_deed),
+                                                                CreateUIGroup(precise_strike_deed)
                                                                 };
         }
 
@@ -258,6 +276,7 @@ namespace Derring_Do
                                                           );
         }
 
+        //TODO rename
         static void createPanachePoolAndDeeds()
         {
             panache_resource = CreateAbilityResource("PanacheResource", "Panache", "", "2087ab6ed0df4c8480379105bc0962a7", null);
@@ -303,6 +322,17 @@ namespace Derring_Do
                                     );
 
             //TODO: Deeds
+        }
+
+        static void createDeeds()
+        {
+            deeds = CreateFeature("DeedsSwashbucklerFeature",
+                                  "Deeds",
+                                  "Swashbucklers spend panache points to accomplish deeds. Most deeds grant the swashbuckler a momentary bonus or effect, but some provide longer-lasting effects. Some deeds remain in effect while the swashbuckler has at least 1 panache point, but do not require expending panache to be maintained. A swashbuckler can only perform deeds of her level or lower. Unless otherwise noted, a deed can be performed multiple successive times, as long as the swashbuckler has or spends the required number of panache points to perform the deed.",
+                                  "df3a37fa67524ed097e070be2ed8f706",
+                                  null, //TODO Icon
+                                  FeatureGroup.None
+                                  );
         }
 
         static void createSwashbucklerFinesse()
@@ -539,7 +569,7 @@ namespace Derring_Do
 
             var apply_buff = Common.createContextActionApplyBuff(opportune_parry_and_riposte_buff, CreateContextDuration(1), dispellable: false);
 
-            var opportune_parry_and_riposte_ability = CreateAbility("OpportuneParryAndRiposteAbility",
+            var opportune_parry_and_riposte_ability = CreateAbility("OpportuneParryAndRiposteSwashbucklerAbility",
                                                                     opportune_parry_and_riposte_buff.Name,
                                                                     opportune_parry_and_riposte_buff.Description,
                                                                     "5b048c5e44904f5382d968d0d2f561d2",
@@ -566,6 +596,128 @@ namespace Derring_Do
 
         static void createKipUpDeed()
         {
+            var kip_up_buff = CreateBuff("KipUpSwashbucklerBuff",
+                                         "Kip-Up",
+                                         "At 3rd level, while the swashbuckler has at least 1 panache point, she can kip-up from prone as a move action without provoking an attack of opportunity. She can kip-up as a swift action instead by spending 1 panache point.",
+                                         "e9e1fe13e22241938599e713869e343e",
+                                         null, //TODO icon
+                                         null, //TODO fx
+                                         AddMechanicsFeature.MechanicsFeatureType.GetUpWithoutAttackOfOpportunity.CreateAddMechanics()
+                                         );
+
+            var kip_up_toggle_ability = CreateActivatableAbility("KipUpActivatableSwashbucklerAbility",
+                                                                 kip_up_buff.Name,
+                                                                 kip_up_buff.Description,
+                                                                 "a28cb94820194c94b6d6e28199a4aebe",
+                                                                 null,
+                                                                 kip_up_buff,
+                                                                 AbilityActivationType.Immediately,
+                                                                 CommandType.Free,
+                                                                 null,
+                                                                 CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                 );
+            kip_up_toggle_ability.IsOnByDefault = true;
+            kip_up_toggle_ability.DeactivateIfOwnerDisabled = false;
+            kip_up_toggle_ability.DeactivateIfCombatEnded = false;
+            kip_up_toggle_ability.DeactivateIfOwnerUnconscious = false;
+
+            var kip_up_swift_activatable_ability = CreateActivatableAbility("KipUpSwiftActivatableSwashbucklerAbility",
+                                                                            kip_up_buff.Name + " (Swift Action)",
+                                                                            kip_up_buff.Description,
+                                                                            "0483e5e0c19d4fd59a1cb381adebc619",
+                                                                            null, //TODO icon
+                                                                            null,
+                                                                            AbilityActivationType.Immediately,
+                                                                            CommandType.Swift,
+                                                                            null,
+                                                                            Create<RestrictionHasUnitProne>(),
+                                                                            CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.TurnOn),
+                                                                            CreateAddFactContextActions(CallOfTheWild.Helpers.Create<GetUpFromProne>())
+                                                                            );
+
+            kip_up_deed = CreateFeature("KipUpSwashbucklerFeature",
+                                        kip_up_buff.Name,
+                                        kip_up_buff.Description,
+                                        "af26a97f3bf9470aa08bbe78967184f1",
+                                        null, //TODO icon
+                                        FeatureGroup.None,
+                                        CallOfTheWild.Helpers.CreateAddFact(kip_up_toggle_ability),
+                                        CallOfTheWild.Helpers.CreateAddFact(kip_up_swift_activatable_ability)
+                                        );
+        }
+
+        static void createMenacingSwordplayDeed()
+        {
+            var cornugon_smash = library.Get<BlueprintFeature>("ceea53555d83f2547ae5fc47e0399e14");
+            var demoralize_action = ((Conditional)cornugon_smash.GetComponent<AddInitiatorAttackWithWeaponTrigger>().Action.Actions[0]).IfTrue.Actions[0];
+
+            var menacing_swordplay_buff = CreateBuff("MenacingSwordplaySwashbucklerBuff",
+                                                     "Menacing Swordplay",
+                                                     "At 3rd level, while she has at least 1 panache point, when a swashbuckler hits an opponent with a light or one-handed piercing melee weapon, she can choose to use Intimidate to demoralize that opponent as a swift action instead of a standard action.",
+                                                     "0a1b5e625521446d9e4f2d0f30eb758a",
+                                                     cornugon_smash.Icon,
+                                                     null,
+                                                     Create<IndimidateOnHitWithSwashbucklerWeapon>(i => i.demoralize_action = demoralize_action)
+                                                     );
+
+            var menacing_swordplay_toggle_ability = CreateActivatableAbility("MenacingSwordplaySwashbucklerActivatableAbility",
+                                                                             menacing_swordplay_buff.Name,
+                                                                             menacing_swordplay_buff.Description,
+                                                                             "478130ab2ed84753876a8fda836c7813",
+                                                                             menacing_swordplay_buff.Icon,
+                                                                             menacing_swordplay_buff,
+                                                                             AbilityActivationType.Immediately,
+                                                                             CommandType.Free,
+                                                                             null,
+                                                                             CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                             );
+
+            menacing_swordplay_deed = CreateFeature("MenacingSwordplaySwashbucklerFeature",
+                                                    menacing_swordplay_buff.Name,
+                                                    menacing_swordplay_buff.Description,
+                                                    "511b63199c564db3b9d51811430e804a",
+                                                    menacing_swordplay_buff.Icon,
+                                                    FeatureGroup.None,
+                                                    CallOfTheWild.Helpers.CreateAddFact(menacing_swordplay_toggle_ability)
+                                                    );
+        }
+
+        static void createPreciseStrikeDeed()
+        {
+            var precise_strike_buff = CreateBuff("PreciseStrikeSwashbucklerBuff",
+                                                 "Precise Strike",
+                                                 "At 3rd level, while she has at least 1 panache point, a swashbuckler gains the ability to strike precisely with a light or one-handed piercing melee weapon (though not natural weapon attacks), adding her swashbuckler level to the damage dealt. To use this deed, a swashbuckler cannot attack with a weapon in her other hand or use a shield other than a buckler. Any creature that is immune to sneak attacks is immune to the additional damage granted by precise strike, and any item or ability that protects a creature from critical hits also protects a creature from the additional damage of a precise strike. This additional damage is precision damage, and isn’t multiplied on a critical hit. As a swift action, a swashbuckler can spend 1 panache point to double her precise strike’s damage bonus on the next attack. This benefit must be used before the end of her turn, or it is lost. This deed’s cost cannot be reduced by any ability or effect that reduces the amount of panache points a deed costs (such as the Signature Deed feat).",
+                                                 "8fa7914d1d734478b9f863e7a514427e",
+                                                 null, //TODO icon
+                                                 null, //TODO fx
+                                                 Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => a.is_passive = false)
+                                                 );
+
+            var apply_buff = Common.createContextActionApplyBuff(precise_strike_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 9); // as per comment in CotW, setting to 9 seconds to simulate 'until end of your turn'
+
+            var precise_strike_ability = CreateAbility("PreciseStrikeSwashbucklerAbility",
+                                                       precise_strike_buff.Name,
+                                                       precise_strike_buff.Description,
+                                                       "349bd539fb6741c1b32a3b6164362559",
+                                                       precise_strike_buff.Icon,
+                                                       AbilityType.Extraordinary,
+                                                       CommandType.Swift,
+                                                       AbilityRange.Personal,
+                                                       "",
+                                                       "",
+                                                       CreateRunActions(new GameAction[] { apply_buff }),
+                                                       Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
+                                                       );
+
+            precise_strike_deed = CreateFeature("PreciseStrikeSwashbucklerFeature",
+                                                precise_strike_buff.Name,
+                                                precise_strike_buff.Description,
+                                                "03b1034003bc4d8083e03c83604484ab",
+                                                precise_strike_buff.Icon,
+                                                FeatureGroup.None,
+                                                CallOfTheWild.Helpers.CreateAddFact(precise_strike_ability),
+                                                Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => a.is_passive = true)
+                                                );
         }
 
         static void createSwashbucklerInitiativeDeed()
@@ -583,17 +735,31 @@ namespace Derring_Do
 
         static void createDummyConsumePanache()
         {
-            var CONSUME_PANACHE_DUMMY_ABILITY = CreateActivatableAbility("DUMMYCONSUMEPANACHEABILITY",
-                                                                        "CONSUME PANACHE",
-                                                                        "CONSUME 1 PANACHE - TESTING ONLY",
-                                                                        "bf8adf354ae947338247ed22f334a671",
-                                                                        null,
-                                                                        null,
-                                                                        AbilityActivationType.Immediately,
-                                                                        UnitCommand.CommandType.Free,
-                                                                        null,
-                                                                        CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.TurnOn)
-                                                                        );
+            var CONSUME_PANACHE_DUMMY_ABILITY = CreateAbility("DUMMYCONSUMEPANACHEABILITY",
+                                                              "CONSUME PANACHE",
+                                                              "CONSUME 1 PANACHE - TESTING ONLY",
+                                                              "bf8adf354ae947338247ed22f334a671",
+                                                              null,
+                                                              AbilityType.Extraordinary,
+                                                              CommandType.Free,
+                                                              AbilityRange.Personal,
+                                                              "",
+                                                              "",
+                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
+                                                              );
+
+            var REGAIN_PANACHE_DUMMY_ABILITY = CreateAbility("DUMMYREGAINPANACHEABILITY",
+                                                             "REGAIN PANACHE",
+                                                             "REGAIN 1 PANACHE - TESTING ONLY",
+                                                             "eae08c25bbdf46918b0570e7094c0fdf",
+                                                             null,
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Free,
+                                                             AbilityRange.Personal,
+                                                             "",
+                                                             "",
+                                                             CreateRunActions(restore_panache)
+                                                             );
 
             CONSUME_PANACHE_DUMMY = CreateFeature("DUMMYCONSUMEPANACHEFEATURE",
                                                   "CONSUME PANACHE",
@@ -602,6 +768,7 @@ namespace Derring_Do
                                                   null,
                                                   FeatureGroup.None,
                                                   Helpers.CreateAddFact(CONSUME_PANACHE_DUMMY_ABILITY),
+                                                  Helpers.CreateAddFact(REGAIN_PANACHE_DUMMY_ABILITY),
                                                   CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource)
                                                   );
         }
@@ -957,7 +1124,25 @@ namespace Derring_Do
             }
             public string GetReason()
             {
-                return "Require light or no armor.";
+                return "Require light or no armor";
+            }
+        }
+
+        [ComponentName("Check Caster is Prone")]
+        [AllowedOn(typeof(BlueprintComponent))]
+        public class AbilityCasterIsProne : BlueprintComponent, IAbilityCasterChecker
+        {
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                if (!caster.View.IsProne)
+                {
+                    return false;
+                }
+                return true;
+            }
+            public string GetReason()
+            {
+                return "Must be prone";
             }
         }
 
@@ -1051,6 +1236,121 @@ namespace Derring_Do
 
             private BlueprintAbilityResource resource = panache_resource;
             private int cost = 1;
+        }
+
+        public class GetUpFromProne : ContextAction
+        {
+            public override string GetCaption()
+            {
+                return "Get up from prone";
+            }
+
+            public override void RunAction()
+            {
+                var owner = this.Context.MaybeOwner;
+                if (owner == null)
+                {
+                    return;
+                };
+                owner.Descriptor.State.Prone.ShouldBeActive = false;
+                owner.Descriptor.State.Prone.Active = false;
+                owner.Descriptor.State.RemoveCondition(UnitCondition.Prone);
+                owner.Descriptor.State.Prone.Duration = TimeSpan.Zero;
+                owner.View.LeaveProneState();
+                owner.View.AnimationManager.StandUpImmediately();
+            }
+        }
+
+        [AllowMultipleComponents]
+        [ComponentName("AA restriction unit prone")]
+        public class RestrictionHasUnitProne : ActivatableAbilityRestriction
+        {
+            public override bool IsAvailable()
+            {
+                return base.Owner.Unit.View.IsProne;
+            }
+        }
+
+        [ComponentName("Intimidate on hit if owner has panache")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class IndimidateOnHitWithSwashbucklerWeapon : RuleInitiatorLogicComponent<RuleAttackRoll>
+        {
+            private BlueprintAbilityResource resource = panache_resource;
+            private int need_resource = 1;
+            public GameAction demoralize_action;
+
+            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
+            {
+            }
+            public override void OnEventDidTrigger(RuleAttackRoll evt)
+            {
+                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                {
+                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
+                    return;
+                }
+
+                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                {
+                    return;
+                }
+
+                if (!evt.IsHit)
+                {
+                    return;
+                }
+
+                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
+                if (factContextOwner != null)
+                {
+                    factContextOwner.RunActionInContext(Helpers.CreateActionList(demoralize_action), evt.Target);
+                }
+            }
+        }
+
+        [ComponentName("Add bonus precision damage on swashbuckler weapons")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class AddBonusPrecisionDamageToSwashbucklerWeapons : RuleInitiatorLogicComponent<RuleAttackRoll>
+        {
+            private BlueprintAbilityResource resource = panache_resource;
+            private int need_resource = 1;
+            public bool is_passive;
+
+            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
+            {
+                if (is_passive && evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                {
+                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
+                    return;
+                }
+
+                ItemEntityWeapon weapon = evt.Weapon;
+                bool flag = isLightOrOneHandedPiercingWeapon(weapon.Blueprint);
+                bool flag2 = base.Owner.Body.SecondaryHand.HasWeapon && base.Owner.Body.SecondaryHand.MaybeWeapon != base.Owner.Body.EmptyHandWeapon;
+                bool flag3 = base.Owner.Body.SecondaryHand.HasShield;
+                if (flag3)
+                {
+                    ArmorProficiencyGroup proficiencyGroup = base.Owner.Body.SecondaryHand.MaybeShield.Blueprint.Type.ProficiencyGroup;
+                    flag3 = !(proficiencyGroup == ArmorProficiencyGroup.Buckler);
+                }
+                if (flag && !flag2 && !flag3)
+                {
+                    evt.PreciseStrike += base.Owner.Progression.GetClassLevel(swashbuckler_class);
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleAttackRoll evt)
+            {
+                if (is_passive)
+                {
+                    return;
+                }
+                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
+                if (factContextOwner != null)
+                {
+                    factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
+                }
+            }
         }
     }
 }
