@@ -114,6 +114,7 @@ namespace Derring_Do
         //DONE WORKING
         static public BlueprintFeature swashbuckler_initiative_deed;
 
+        //TODO - Figure out
         static public BlueprintFeature swashbucklers_grace_deed;
 
         static public BlueprintFeature superior_feint_deed;
@@ -221,6 +222,8 @@ namespace Derring_Do
             createMenacingSwordplayDeed();
             createPreciseStrikeDeed();
             createSwashbucklerInitiativeDeed();
+            //createSwashbucklersGraceDeed();
+            createSuperiorFeintDeed();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -236,7 +239,7 @@ namespace Derring_Do
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
                                                                        LevelEntry(5, swashbuckler_weapon_training),
                                                                        LevelEntry(6, charmed_life),
-                                                                       LevelEntry(7, nimble_unlock),
+                                                                       LevelEntry(7, nimble_unlock, superior_feint_deed),
                                                                        LevelEntry(8, fighter_feat),
                                                                        LevelEntry(9, swashbuckler_weapon_training),
                                                                        LevelEntry(10, charmed_life),
@@ -259,7 +262,8 @@ namespace Derring_Do
                                                                 //TODO - experiment with UI layouts
                                                                 CreateUIGroup(derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, kip_up_deed, swashbuckler_initiative_deed),
                                                                 CreateUIGroup(menacing_swordplay_deed),
-                                                                CreateUIGroup(precise_strike_deed)
+                                                                CreateUIGroup(precise_strike_deed),
+                                                                CreateUIGroup(superior_feint_deed)
                                                                 };
         }
 
@@ -733,6 +737,60 @@ namespace Derring_Do
             swashbuckler_initiative_deed.AddComponent(Create<AddStaticBonusOnInitiativeCheckIfResourceAvailable>(a => { a.amount = 1; a.bonus = 2; a.resource = panache_resource; }));
         }
 
+        static void createSwashbucklersGraceDeed()
+        {
+            var 
+
+            swashbucklers_grace_deed = CreateFeature("SwashbucklersGraceSwashbucklerFeature",
+                                                     "Swashbuckler's Grace",
+                                                     "At 7th level, while the swashbuckler has at least 1 panache point, she takes no penalty for moving at full speed when she uses Acrobatics to attempt to move through a threatened area or an enemy’s space.",
+                                                     "dc10b82b73684935a25891aabaee5cf2",
+                                                     null, //TODO icon
+                                                     FeatureGroup.None,
+                                                     Common.createAddConditionImmunity(UnitCondition.UseMobilityToNegateAttackOfOpportunity)
+                                                     );
+        }
+
+        static void createSuperiorFeintDeed()
+        {
+            var superior_feint_debuff = CreateBuff("SuperiorFeintEnemyDebuff",
+                                                   "Superior Feint",
+                                                   "Target is is denied its Dexterity bonus to AC.",
+                                                   "9bfd81378c0c4a798115fda7f36e43f2",
+                                                   null, //TODO icon
+                                                   null, //TODO fx
+                                                   Common.createAddCondition(UnitCondition.LoseDexterityToAC)
+                                                   );
+
+            var apply_buff = Common.createContextActionApplyBuff(superior_feint_debuff, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 6);
+
+            var superior_feint_ability = CreateAbility("SuperiorFeintSwashbucklerAbility",
+                                                       "Superior Feint",
+                                                       "At 7th level, a swashbuckler with at least 1 panache point can, as a standard action, purposefully miss a creature she could make a melee attack against with a wielded light or one-handed piercing weapon. When she does, the creature is denied its Dexterity bonus to AC until the start of the swashbuckler’s next turn.",
+                                                       "ed17ecaa24934fb68c7182d05ded73ad",
+                                                       null, //TODO icon
+                                                       AbilityType.Extraordinary,
+                                                       CommandType.Standard,
+                                                       AbilityRange.Weapon,
+                                                       Helpers.oneRoundDuration,
+                                                       Helpers.savingThrowNone,
+                                                       Helpers.CreateRunActions(apply_buff),
+                                                       Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                       Create<AbilityCasterHasAtLeastOnePanache>(),
+                                                       Helpers.Create<AttackAnimation>()
+                                                       );
+            superior_feint_ability.setMiscAbilityParametersTouchHarmful(animation: UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: Kingmaker.View.Animation.CastAnimationStyle.CastActionSpecialAttack);
+
+            superior_feint_deed = CreateFeature("SuperiorFeintSwashbucklerFeature",
+                                                superior_feint_debuff.Name,
+                                                "At 7th level, a swashbuckler with at least 1 panache point can, as a standard action, purposefully miss a creature she could make a melee attack against with a wielded light or one-handed piercing weapon. When she does, the creature is denied its Dexterity bonus to AC until the start of the swashbuckler’s next turn.",
+                                                "5f24450e21af46598dd7409f42f4edc5",
+                                                superior_feint_debuff.Icon,
+                                                FeatureGroup.None,
+                                                Helpers.CreateAddFact(superior_feint_ability)
+                                                );
+        }
+
         static void createDummyConsumePanache()
         {
             var CONSUME_PANACHE_DUMMY_ABILITY = CreateAbility("DUMMYCONSUMEPANACHEABILITY",
@@ -1128,6 +1186,36 @@ namespace Derring_Do
             }
         }
 
+        [ComponentName("Check Caster is Wielding a Swashbuckler Weapon")]
+        [AllowedOn(typeof(BlueprintAbility))]
+        public class AbilityCasterSwashbucklerWeaponCheck : BlueprintComponent, IAbilityCasterChecker
+        {
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                return (isLightOrOneHandedPiercingWeapon(caster.Body.PrimaryHand.Weapon.Blueprint) || isLightOrOneHandedPiercingWeapon(caster.Body.SecondaryHand.Weapon.Blueprint));
+            }
+            public string GetReason()
+            {
+                return "Require light or one-handed piercing weapon";
+            }
+        }
+
+        [ComponentName("Check Caster has at least One Panache")]
+        [AllowedOn(typeof(BlueprintAbility))]
+        public class AbilityCasterHasAtLeastOnePanache : BlueprintComponent, IAbilityCasterChecker
+        {
+            private BlueprintAbilityResource resource = panache_resource;
+
+            public bool CorrectCaster(UnitEntityData caster)
+            {
+                return (caster.Descriptor.Resources.GetResourceAmount(resource) > 0);
+            }
+            public string GetReason()
+            {
+                return "Require at least 1 panache point";
+            }
+        }
+
         [ComponentName("Check Caster is Prone")]
         [AllowedOn(typeof(BlueprintComponent))]
         public class AbilityCasterIsProne : BlueprintComponent, IAbilityCasterChecker
@@ -1349,6 +1437,78 @@ namespace Derring_Do
                 if (factContextOwner != null)
                 {
                     factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
+                }
+            }
+        }
+
+        [ComponentName("Remove buff on ending mobility")]
+        [AllowedOn(typeof(BlueprintFeature))]
+        public class RemoveBuffOnEndingMobility : IUnitConditionsChanged
+        {
+            public Fact fact;
+            public void HandleUnitConditionsChanged(UnitEntityData unit, UnitCondition condition)
+            {
+                if (!(condition == UnitCondition.UseMobilityToNegateAttackOfOpportunity))
+                {
+                    return;
+                }
+
+                if (!unit.Descriptor.State.HasCondition(condition))
+                {
+
+                }
+            }
+        }
+
+        [ComponentName("Negate movement penalties from Mobility if has panache")]
+        [AllowedOn(typeof(BlueprintFeature))]
+        public class NegateMobilityMovementPenaltiesIfHasPanache : IUnitConditionsChanged
+        {
+            public Fact fact;
+            private BlueprintAbilityResource resource = panache_resource;
+            private int need_resource = 1;
+            private BlueprintBuff buff_template = CreateBuff("SwashbucklersGraceSwashbucklerBuff",
+                                                             "Swashbuckler's Grace",
+                                                             "At 7th level, while the swashbuckler has at least 1 panache point, she takes no penalty for moving at full speed when she uses Acrobatics to attempt to move through a threatened area or an enemy’s space.",
+                                                             "a7a33aef774749c4b5e41f33f0f589a5",
+                                                             null, //TODO icon
+                                                             null //TODO fx
+                                                             );
+            private BlueprintBuff speed_buff;
+
+            public void HandleUnitConditionsChanged(UnitEntityData unit, UnitCondition condition)
+            {
+                if (!(condition == UnitCondition.UseMobilityToNegateAttackOfOpportunity))
+                {
+                    return;
+                }
+
+                if (unit.Descriptor.State.HasCondition(condition))
+                {
+                    if (unit.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                    {
+                        return;
+                    }
+                    var speed_bonus = unit.CombatSpeedMps - unit.CurrentSpeedMps;
+                    speed_bonus = speed_bonus > 0 ? speed_bonus : 0;
+                    speed_buff = buff_template;
+                    speed_buff.AddComponent(Create<BuffMovementSpeed>(b => { b.Value = (int)speed_bonus; }));
+
+                    var apply_buff = Common.createContextActionApplyBuff(speed_buff, Helpers.CreateContextDuration(), is_permanent: true, dispellable: false);
+
+                    IFactContextOwner factContextOwner = this.fact as IFactContextOwner;
+                    if (factContextOwner != null)
+                    {
+                        factContextOwner.RunActionInContext(Helpers.CreateActionList(apply_buff));
+                    }
+                }
+                else
+                {
+                    IFactContextOwner factContextOwner = this.fact as IFactContextOwner;
+                    if (factContextOwner != null)
+                    {
+                        factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveBuff>(r => r.Buff = speed_buff)));
+                    }
                 }
             }
         }
