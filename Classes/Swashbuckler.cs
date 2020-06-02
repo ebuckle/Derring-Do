@@ -39,13 +39,13 @@ using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.ElementsSystem;
 using Kingmaker.Controllers.Combat;
 using Kingmaker;
-using UnityEngine;
-using Kingmaker.Visual.Animation.Kingmaker.Actions;
-using Kingmaker.Controllers.Units;
-using CallOfTheWild.AooMechanics;
-using Discord;
 using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
 using Kingmaker.Designers.EventConditionActionSystem.Actions;
+using Kingmaker.Blueprints.Root;
+using Kingmaker.Controllers;
+using System.Collections.Generic;
+using Kingmaker.UnitLogic.Abilities;
+using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 
 namespace Derring_Do
 {
@@ -224,6 +224,7 @@ namespace Derring_Do
             createSwashbucklerInitiativeDeed();
             //createSwashbucklersGraceDeed();
             createSuperiorFeintDeed();
+            createTargetedStrikeDeed();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -239,7 +240,7 @@ namespace Derring_Do
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
                                                                        LevelEntry(5, swashbuckler_weapon_training),
                                                                        LevelEntry(6, charmed_life),
-                                                                       LevelEntry(7, nimble_unlock, superior_feint_deed),
+                                                                       LevelEntry(7, nimble_unlock, superior_feint_deed, targeted_strike_deed),
                                                                        LevelEntry(8, fighter_feat),
                                                                        LevelEntry(9, swashbuckler_weapon_training),
                                                                        LevelEntry(10, charmed_life),
@@ -258,12 +259,15 @@ namespace Derring_Do
             swashbuckler_progression.UIGroups = new UIGroup[] { CreateUIGroup(fighter_feat),
                                                                 CreateUIGroup(nimble_unlock),
                                                                 CreateUIGroup(swashbuckler_weapon_training),
-                                                                CreateUIGroup(charmed_life),
-                                                                //TODO - experiment with UI layouts
+                                                                CreateUIGroup(charmed_life)//,
+                                                                //TODO - experiment with UI layouts for Deeds
+                                                                /*
                                                                 CreateUIGroup(derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, kip_up_deed, swashbuckler_initiative_deed),
                                                                 CreateUIGroup(menacing_swordplay_deed),
                                                                 CreateUIGroup(precise_strike_deed),
-                                                                CreateUIGroup(superior_feint_deed)
+                                                                CreateUIGroup(superior_feint_deed),
+                                                                CreateUIGroup(targeted_strike_deed)
+                                                                */
                                                                 };
         }
 
@@ -773,13 +777,13 @@ namespace Derring_Do
                                                        CommandType.Standard,
                                                        AbilityRange.Weapon,
                                                        Helpers.oneRoundDuration,
-                                                       Helpers.savingThrowNone,
+                                                       "",
                                                        Helpers.CreateRunActions(apply_buff),
                                                        Create<AbilityCasterSwashbucklerWeaponCheck>(),
                                                        Create<AbilityCasterHasAtLeastOnePanache>(),
                                                        Helpers.Create<AttackAnimation>()
                                                        );
-            superior_feint_ability.setMiscAbilityParametersTouchHarmful(animation: UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: Kingmaker.View.Animation.CastAnimationStyle.CastActionSpecialAttack);
+            superior_feint_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
 
             superior_feint_deed = CreateFeature("SuperiorFeintSwashbucklerFeature",
                                                 superior_feint_debuff.Name,
@@ -789,6 +793,43 @@ namespace Derring_Do
                                                 FeatureGroup.None,
                                                 Helpers.CreateAddFact(superior_feint_ability)
                                                 );
+        }
+
+        static void createTargetedStrikeDeed()
+        {
+            var disarm = library.Get<BlueprintAbility>("45d94c6db453cfc4a9b99b72d6afe6f6"); //Disarm ability
+
+            var base_name = "Targeted Strike";
+
+            var targeted_strike_arms_ability = CreateAbility("TargetedStrikeArmsSwashbucklerAbility",
+                                                             base_name + " - Arms",
+                                                             "The target takes no damage from the attack, but it is disarmed.",
+                                                             "80bbdc295bd649bea280c7ed23ad5c37",
+                                                             disarm.Icon, //TODO icon
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                             Create<AbilityCasterInCombat>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
+                                                             Helpers.CreateRunActions(Create<DisarmTarget>()),
+                                                             Helpers.Create<AttackAnimation>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_arms_ability);
+            targeted_strike_arms_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
+
+            targeted_strike_deed = CreateFeature("TargetedStrikeSwashbucklerFeature",
+                                                 base_name,
+                                                 "At 7th level, as a full-round action the swashbuckler can spend 1 panache point to make an attack with a single light or one-handed piercing melee weapon that cripples part of a foe’s body. The swashbuckler chooses a part of the body to target. If the attack succeeds, in addition to the attack’s normal damage, the target suffers one of the following effects based on the part of the body targeted. If a creature doesn’t have one of the listed body locations, that body part cannot be targeted. Creatures that are immune to sneak attacks are also immune to targeted strikes. Items or abilities that protect a creature from critical hits also protect a creature from targeted strikes.",
+                                                 "a28dc4a06df947f8b519fed5b4e72153",
+                                                 null, //TODO icon
+                                                 FeatureGroup.None,
+                                                 Helpers.CreateAddFact(targeted_strike_arms_ability)
+                                                 );
+
         }
 
         static void createDummyConsumePanache()
@@ -1441,75 +1482,60 @@ namespace Derring_Do
             }
         }
 
-        [ComponentName("Remove buff on ending mobility")]
-        [AllowedOn(typeof(BlueprintFeature))]
-        public class RemoveBuffOnEndingMobility : IUnitConditionsChanged
+        public class DisarmTarget : ContextAction
         {
-            public Fact fact;
-            public void HandleUnitConditionsChanged(UnitEntityData unit, UnitCondition condition)
+            public override string GetCaption()
             {
-                if (!(condition == UnitCondition.UseMobilityToNegateAttackOfOpportunity))
+                return "Disarm target";
+            }
+
+            public override void RunAction()
+            {
+                if (base.Target.Unit == null)
                 {
                     return;
                 }
 
-                if (!unit.Descriptor.State.HasCondition(condition))
+                ItemEntityWeapon maybeWeapon = base.Target.Unit.Body.PrimaryHand.MaybeWeapon;
+                ItemEntityWeapon maybeWeapon2 = base.Target.Unit.Body.SecondaryHand.MaybeWeapon;
+                if (maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural)
                 {
-
+                    base.Target.Unit.Descriptor.AddBuff(BlueprintRoot.Instance.SystemMechanics.DisarmMainHandBuff, this.Context, TimeSpanExtension.Seconds(6));
+                }
+                else if (maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural)
+                {
+                    this.Target.Unit.Descriptor.AddBuff(BlueprintRoot.Instance.SystemMechanics.DisarmOffHandBuff, this.Context, TimeSpanExtension.Seconds(6));
                 }
             }
         }
 
-        [ComponentName("Negate movement penalties from Mobility if has panache")]
-        [AllowedOn(typeof(BlueprintFeature))]
-        public class NegateMobilityMovementPenaltiesIfHasPanache : IUnitConditionsChanged
+        [ComponentName("Delivery ability with a weapon hit")]
+        [AllowedOn(typeof(BlueprintAbility))]
+        public class AbilityDeliverHitWithMeleeWeapon : AbilityDeliverEffect
         {
-            public Fact fact;
-            private BlueprintAbilityResource resource = panache_resource;
-            private int need_resource = 1;
-            private BlueprintBuff buff_template = CreateBuff("SwashbucklersGraceSwashbucklerBuff",
-                                                             "Swashbuckler's Grace",
-                                                             "At 7th level, while the swashbuckler has at least 1 panache point, she takes no penalty for moving at full speed when she uses Acrobatics to attempt to move through a threatened area or an enemy’s space.",
-                                                             "a7a33aef774749c4b5e41f33f0f589a5",
-                                                             null, //TODO icon
-                                                             null //TODO fx
-                                                             );
-            private BlueprintBuff speed_buff;
-
-            public void HandleUnitConditionsChanged(UnitEntityData unit, UnitCondition condition)
+            public override IEnumerator<AbilityDeliveryTarget> Deliver(AbilityExecutionContext context, TargetWrapper target)
             {
-                if (!(condition == UnitCondition.UseMobilityToNegateAttackOfOpportunity))
+                UnitEntityData caster = context.MaybeCaster;
+                if (caster == null)
                 {
-                    return;
+                    UberDebug.LogError("Caster is missing", Array.Empty<object>());
+                    yield break;
                 }
 
-                if (unit.Descriptor.State.HasCondition(condition))
+                RulebookEventContext rulebookContext = context.RulebookContext;
+                RuleAttackWithWeapon attackWithWeapon = (rulebookContext != null) ? rulebookContext.AllEvents.LastOfType<RuleAttackWithWeapon>() : null;
+                RuleAttackWithWeapon ruleAttackWithWeapon = attackWithWeapon;
+                RuleAttackRoll attackRoll = (ruleAttackWithWeapon != null) ? ruleAttackWithWeapon.AttackRoll : null;
+                attackRoll = (attackRoll ?? context.TriggerRule<RuleAttackRoll>(new RuleAttackRoll(caster, target.Unit, caster.GetFirstWeapon(), 0)));
+                if (attackWithWeapon == null)
                 {
-                    if (unit.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                    {
-                        return;
-                    }
-                    var speed_bonus = unit.CombatSpeedMps - unit.CurrentSpeedMps;
-                    speed_bonus = speed_bonus > 0 ? speed_bonus : 0;
-                    speed_buff = buff_template;
-                    speed_buff.AddComponent(Create<BuffMovementSpeed>(b => { b.Value = (int)speed_bonus; }));
-
-                    var apply_buff = Common.createContextActionApplyBuff(speed_buff, Helpers.CreateContextDuration(), is_permanent: true, dispellable: false);
-
-                    IFactContextOwner factContextOwner = this.fact as IFactContextOwner;
-                    if (factContextOwner != null)
-                    {
-                        factContextOwner.RunActionInContext(Helpers.CreateActionList(apply_buff));
-                    }
+                    attackRoll.ConsumeMirrorImageIfNecessary();
                 }
-                else
+                yield return new AbilityDeliveryTarget(target)
                 {
-                    IFactContextOwner factContextOwner = this.fact as IFactContextOwner;
-                    if (factContextOwner != null)
-                    {
-                        factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveBuff>(r => r.Buff = speed_buff)));
-                    }
-                }
+                    AttackRoll = attackRoll
+                };
+                yield break;
             }
         }
     }
