@@ -49,6 +49,11 @@ using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.Commands;
 using Kingmaker.View.Animation;
+using CallOfTheWild.BleedMechanics;
+using Kingmaker.Blueprints.Classes.Spells;
+using Kingmaker.UnitLogic.Buffs.Components;
+using Kingmaker.Controllers.Units;
+using Kingmaker.RuleSystem.Rules.Damage;
 
 namespace Derring_Do
 {
@@ -228,6 +233,7 @@ namespace Derring_Do
             //createSwashbucklersGraceDeed();
             createSuperiorFeintDeed();
             createTargetedStrikeDeed();
+            createBleedingWoundDeed();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -247,7 +253,7 @@ namespace Derring_Do
                                                                        LevelEntry(8, fighter_feat),
                                                                        LevelEntry(9, swashbuckler_weapon_training),
                                                                        LevelEntry(10, charmed_life),
-                                                                       LevelEntry(11, nimble_unlock),
+                                                                       LevelEntry(11, nimble_unlock, bleeding_wound_deed),
                                                                        LevelEntry(12, fighter_feat),
                                                                        LevelEntry(13, swashbuckler_weapon_training),
                                                                        LevelEntry(14, charmed_life),
@@ -262,15 +268,7 @@ namespace Derring_Do
             swashbuckler_progression.UIGroups = new UIGroup[] { CreateUIGroup(fighter_feat),
                                                                 CreateUIGroup(nimble_unlock),
                                                                 CreateUIGroup(swashbuckler_weapon_training),
-                                                                CreateUIGroup(charmed_life)//,
-                                                                //TODO - experiment with UI layouts for Deeds
-                                                                /*
-                                                                CreateUIGroup(derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, kip_up_deed, swashbuckler_initiative_deed),
-                                                                CreateUIGroup(menacing_swordplay_deed),
-                                                                CreateUIGroup(precise_strike_deed),
-                                                                CreateUIGroup(superior_feint_deed),
-                                                                CreateUIGroup(targeted_strike_deed)
-                                                                */
+                                                                CreateUIGroup(charmed_life)
                                                                 };
         }
 
@@ -709,7 +707,7 @@ namespace Derring_Do
                                                  Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => a.is_passive = false)
                                                  );
 
-            var apply_buff = Common.createContextActionApplyBuff(precise_strike_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 9); // as per comment in CotW, setting to 9 seconds to simulate 'until end of your turn'
+            var apply_buff = Common.createContextActionApplyBuff(precise_strike_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 4);
 
             var precise_strike_ability = CreateAbility("PreciseStrikeSwashbucklerAbility",
                                                        precise_strike_buff.Name,
@@ -908,6 +906,171 @@ namespace Derring_Do
                                                  FeatureGroup.None,
                                                  Helpers.CreateAddFact(wrapper)
                                                  );
+        }
+
+        static void createBleedingWoundDeed()
+        {
+            var bleed1d6 = library.Get<BlueprintBuff>("75039846c3d85d940aa96c249b97e562");
+            var icon = NewSpells.deadly_juggernaut.Icon;
+            var spend_one_panache = Create<SpendPanache>(s => s.amount = 1);
+            var spend_two_panache = Create<SpendPanache>(s => s.amount = 2);
+            int bleeding_wound_group = 110103; //Quick and dirty
+
+            // Basic Bleed
+            var bleeding_buff = Helpers.CreateBuff("BleedingWoundBleedSwashbucklerBuff",
+                                                   "Bleeding Wound",
+                                                   "At 11th level, when the swashbuckler hits a living creature with a light or one-handed piercing melee weapon attack, as a free action she can spend 1 panache point to have that attack deal additional bleed damage. The amount of bleed damage dealt is equal to the swashbuckler’s Dexterity modifier (minimum 1). Alternatively, the swashbuckler can spend 2 panache points to deal 1 point of Strength, Dexterity, or Constitution bleed damage instead (swashbuckler’s choice). Creatures that are immune to sneak attacks are also immune to these types of bleed damage.",
+                                                   "0a604a29042d4621a94f734657403702",
+                                                   icon,
+                                                   null,
+                                                   Helpers.Create<BleedBuff>(b => b.dice_value = Helpers.CreateContextDiceValue(DiceType.Zero, 0, Helpers.CreateContextValue(AbilityRankType.Default))),
+                                                   Helpers.CreateContextRankConfig(ContextRankBaseValueType.StatBonus, stat: StatType.Dexterity, min: 0),
+                                                   Helpers.CreateSpellDescriptor(SpellDescriptor.Bleed),
+                                                   bleed1d6.GetComponent<CombatStateTrigger>(),
+                                                   bleed1d6.GetComponent<AddHealTrigger>()
+                                                   );
+            var apply_buff = Common.createContextActionApplyBuff(bleeding_buff, Helpers.CreateContextDuration(), dispellable: false, is_permanent: true);
+            var bleeding_wound_buff = Helpers.CreateBuff("BleedingWoundAttackSwashbucklerBuff",
+                                                         "Bleeding Wound",
+                                                         bleeding_buff.Description,
+                                                         "064247db294242ae9dca76a20a929832",
+                                                         icon,
+                                                         null,
+                                                         Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 1; a.Action = Helpers.CreateActionList(apply_buff); })
+                                                         );
+            var bleeding_wound_toggle = Helpers.CreateActivatableAbility("BleedingWoundSwashbucklerToggleAbility",
+                                                                         bleeding_wound_buff.Name,
+                                                                         bleeding_wound_buff.Description,
+                                                                         "719db741eb4e498bb42d718f5be28e94",
+                                                                         bleeding_wound_buff.Icon,
+                                                                         bleeding_wound_buff,
+                                                                         AbilityActivationType.Immediately,
+                                                                         UnitCommand.CommandType.Free,
+                                                                         null,
+                                                                         CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                         );
+            bleeding_wound_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_toggle.DeactivateImmediately = true;
+
+            //Strength Bleed
+            var str_damage = Helpers.CreateActionDealDamage(StatType.Strength, Helpers.CreateContextDiceValue(DiceType.Zero, 0, 1), IgnoreCritical: true);
+            var bleeding_strength_buff = Helpers.CreateBuff("BleedingWoundStrengthSwashbucklerBuff",
+                                                            "Bleeding Wound - Strength",
+                                                            "At 11th level, when the swashbuckler hits a living creature with a light or one-handed piercing melee weapon attack, as a free action she can spend 1 panache point to have that attack deal additional bleed damage. The amount of bleed damage dealt is equal to the swashbuckler’s Dexterity modifier (minimum 1). Alternatively, the swashbuckler can spend 2 panache points to deal 1 point of Strength, Dexterity, or Constitution bleed damage instead (swashbuckler’s choice). Creatures that are immune to sneak attacks are also immune to these types of bleed damage.",
+                                                            "22c2497635924200b46abd02ec77598a",
+                                                            icon,
+                                                            null,
+                                                            Helpers.CreateAddFactContextActions(newRound: str_damage),
+                                                            Helpers.CreateSpellDescriptor(SpellDescriptor.Bleed),
+                                                            bleed1d6.GetComponent<CombatStateTrigger>(),
+                                                            bleed1d6.GetComponent<AddHealTrigger>()
+                                                            );
+            var apply_strength_buff = Common.createContextActionApplyBuff(bleeding_strength_buff, Helpers.CreateContextDuration(), dispellable: false, is_permanent: true);
+            var bleeding_wound_strength_buff = Helpers.CreateBuff("BleedingWoundStrengthAttackSwashbucklerBuff",
+                                                                  "Bleeding Wound - Strength",
+                                                                  bleeding_strength_buff.Description,
+                                                                  "3f8b685f59bd4923a30cb04769216509",
+                                                                  icon,
+                                                                  null,
+                                                                  Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_strength_buff); })
+                                                                  );
+            var bleeding_wound_strength_toggle = Helpers.CreateActivatableAbility("BleedingWoundStrengthSwashbucklerToggleAbility",
+                                                                                  bleeding_wound_strength_buff.Name,
+                                                                                  bleeding_wound_strength_buff.Description,
+                                                                                  "525d3567d3a54623a5c7867dcd3d20de",
+                                                                                  bleeding_wound_strength_buff.Icon,
+                                                                                  bleeding_wound_strength_buff,
+                                                                                  AbilityActivationType.Immediately,
+                                                                                  UnitCommand.CommandType.Free,
+                                                                                  null,
+                                                                                  CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                                  );
+            bleeding_wound_strength_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_strength_toggle.DeactivateImmediately = true;
+
+            //Dexterity Bleed
+            var dex_damage = Helpers.CreateActionDealDamage(StatType.Dexterity, Helpers.CreateContextDiceValue(DiceType.Zero, 0, 1), IgnoreCritical: true);
+            var bleeding_dexterity_buff = Helpers.CreateBuff("BleedingWoundDexteritySwashbucklerBuff",
+                                                             "Bleeding Wound - Dexterity",
+                                                             "At 11th level, when the swashbuckler hits a living creature with a light or one-handed piercing melee weapon attack, as a free action she can spend 1 panache point to have that attack deal additional bleed damage. The amount of bleed damage dealt is equal to the swashbuckler’s Dexterity modifier (minimum 1). Alternatively, the swashbuckler can spend 2 panache points to deal 1 point of Strength, Dexterity, or Constitution bleed damage instead (swashbuckler’s choice). Creatures that are immune to sneak attacks are also immune to these types of bleed damage.",
+                                                             "abda243ff272482d83ef77c89977db2f",
+                                                             icon,
+                                                             null,
+                                                             Helpers.CreateAddFactContextActions(newRound: dex_damage),
+                                                             Helpers.CreateSpellDescriptor(SpellDescriptor.Bleed),
+                                                             bleed1d6.GetComponent<CombatStateTrigger>(),
+                                                             bleed1d6.GetComponent<AddHealTrigger>()
+                                                             );
+            var apply_dexterity_buff = Common.createContextActionApplyBuff(bleeding_dexterity_buff, Helpers.CreateContextDuration(), dispellable: false, is_permanent: true);
+            var bleeding_wound_dexterity_buff = Helpers.CreateBuff("BleedingWoundDexterityAttackSwashbucklerBuff",
+                                                                   "Bleeding Wound - Dexterity",
+                                                                   bleeding_dexterity_buff.Description,
+                                                                   "0dc0a9feb1d54c129dedf07f93b29186",
+                                                                   icon,
+                                                                   null,
+                                                                   Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_dexterity_buff); })
+                                                                   );
+            var bleeding_wound_dexterity_toggle = Helpers.CreateActivatableAbility("BleedingWoundDexteritySwashbucklerToggleAbility",
+                                                                                   bleeding_wound_dexterity_buff.Name,
+                                                                                   bleeding_wound_dexterity_buff.Description,
+                                                                                   "d0f1aede8d78495e955f1a83b6b76060",
+                                                                                   bleeding_wound_dexterity_buff.Icon,
+                                                                                   bleeding_wound_dexterity_buff,
+                                                                                   AbilityActivationType.Immediately,
+                                                                                   UnitCommand.CommandType.Free,
+                                                                                   null,
+                                                                                   CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                                   );
+            bleeding_wound_dexterity_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_dexterity_toggle.DeactivateImmediately = true;
+
+            //Constitution Bleed
+            var con_damage = Helpers.CreateActionDealDamage(StatType.Constitution, Helpers.CreateContextDiceValue(DiceType.Zero, 0, 1), IgnoreCritical: true);
+            var bleeding_constitution_buff = Helpers.CreateBuff("BleedingWoundConstitutionSwashbucklerBuff",
+                                                                "Bleeding Wound - Constitution",
+                                                                "At 11th level, when the swashbuckler hits a living creature with a light or one-handed piercing melee weapon attack, as a free action she can spend 1 panache point to have that attack deal additional bleed damage. The amount of bleed damage dealt is equal to the swashbuckler’s Dexterity modifier (minimum 1). Alternatively, the swashbuckler can spend 2 panache points to deal 1 point of Strength, Dexterity, or Constitution bleed damage instead (swashbuckler’s choice). Creatures that are immune to sneak attacks are also immune to these types of bleed damage.",
+                                                                "f32256d2e55249ab82054ca797219bc1",
+                                                                icon,
+                                                                null,
+                                                                Helpers.CreateAddFactContextActions(newRound: con_damage),
+                                                                Helpers.CreateSpellDescriptor(SpellDescriptor.Bleed),
+                                                                bleed1d6.GetComponent<CombatStateTrigger>(),
+                                                                bleed1d6.GetComponent<AddHealTrigger>()
+                                                                );
+            var apply_constitution_buff = Common.createContextActionApplyBuff(bleeding_constitution_buff, Helpers.CreateContextDuration(), dispellable: false, is_permanent: true);
+            var bleeding_wound_constitution_buff = Helpers.CreateBuff("BleedingWoundConstitutionAttackSwashbucklerBuff",
+                                                                      "Bleeding Wound - Constitution",
+                                                                      bleeding_constitution_buff.Description,
+                                                                      "9ec3a07dda584a0986350e7c624f9755",
+                                                                      icon,
+                                                                      null,
+                                                                      Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_constitution_buff); })
+                                                                      );
+            var bleeding_wound_constitution_toggle = Helpers.CreateActivatableAbility("BleedingWoundConstitutionSwashbucklerToggleAbility",
+                                                                                      bleeding_wound_constitution_buff.Name,
+                                                                                      bleeding_wound_constitution_buff.Description,
+                                                                                      "3371cb969f2e47a5915ff41e21f4e4a2",
+                                                                                      bleeding_wound_constitution_buff.Icon,
+                                                                                      bleeding_wound_constitution_buff,
+                                                                                      AbilityActivationType.Immediately,
+                                                                                      UnitCommand.CommandType.Free,
+                                                                                      null,
+                                                                                      CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                                      );
+            bleeding_wound_constitution_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_constitution_toggle.DeactivateImmediately = true;
+
+            bleeding_wound_deed = CreateFeature("BleedingWoundSwashbucklerFeature",
+                                                bleeding_buff.Name,
+                                                bleeding_buff.Description,
+                                                "d6ba68729e3343348f06fd3521a26d6a",
+                                                bleeding_buff.Icon,
+                                                FeatureGroup.None,
+                                                CallOfTheWild.Helpers.CreateAddFact(bleeding_wound_toggle),
+                                                CallOfTheWild.Helpers.CreateAddFact(bleeding_wound_strength_toggle),
+                                                CallOfTheWild.Helpers.CreateAddFact(bleeding_wound_dexterity_toggle),
+                                                CallOfTheWild.Helpers.CreateAddFact(bleeding_wound_constitution_toggle)
+                                                );
         }
 
         static void createDummyConsumePanache()
@@ -1497,6 +1660,14 @@ namespace Derring_Do
                     return;
                 }
 
+                if (evt.Initiator.CombatState.Cooldown.SwiftAction != 0.0f)
+                {
+                    Main.logger.Log("Swift action on Cooldown");
+                    return;
+                }
+
+                Main.logger.Log("Cooldown was " + evt.Initiator.CombatState.Cooldown.SwiftAction);
+
                 if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
                 {
                     return;
@@ -1510,6 +1681,7 @@ namespace Derring_Do
                 IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
                 if (factContextOwner != null)
                 {
+                    evt.Initiator.CombatState.Cooldown.SwiftAction = 6.0f;
                     factContextOwner.RunActionInContext(Helpers.CreateActionList(demoralize_action), evt.Target);
                 }
             }
@@ -1584,6 +1756,27 @@ namespace Derring_Do
                 {
                     this.Target.Unit.Descriptor.AddBuff(BlueprintRoot.Instance.SystemMechanics.DisarmOffHandBuff, this.Context, TimeSpanExtension.Seconds(6));
                 }
+            }
+        }
+
+        public class SpendPanache : ContextAction
+        {
+            private static BlueprintAbilityResource resource = panache_resource;
+            public int amount;
+
+            public override string GetCaption()
+            {
+                return "Spend Panache";
+            }
+
+            public override void RunAction()
+            {
+                var owner = this.Context.MaybeOwner;
+                if (owner == null)
+                {
+                    return;
+                };
+                owner.Descriptor.Resources.Spend(panache_resource, amount);
             }
         }
 
@@ -1700,6 +1893,51 @@ namespace Derring_Do
                     }
                 }
                 yield break;
+            }
+        }
+
+        [ComponentName("Add bonus bleed damage on swashbuckler weapons")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class ApplySwashbucklerBleedOnHit : RuleInitiatorLogicComponent<RuleAttackRoll>
+        {
+            private BlueprintAbilityResource resource = panache_resource;
+            public ActionList Action;
+            public int need_resource;
+
+            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
+            {
+            }
+
+            public override void OnEventDidTrigger(RuleAttackRoll evt)
+            {
+                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
+                {
+                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
+                    return;
+                }
+
+                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                {
+                    return;
+                }
+
+                if (evt.ImmuneToSneakAttack)
+                {
+                    return;
+                }
+
+                if (!evt.IsHit)
+                {
+                    return;
+                }
+
+                evt.Initiator.Descriptor.Resources.Spend(resource, need_resource);
+
+                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
+                if (factContextOwner != null)
+                {
+                    factContextOwner.RunActionInContext(this.Action, evt.Target);
+                }
             }
         }
     }
