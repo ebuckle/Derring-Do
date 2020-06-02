@@ -46,6 +46,9 @@ using Kingmaker.Controllers;
 using System.Collections.Generic;
 using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
+using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
+using Kingmaker.UnitLogic.Commands;
+using Kingmaker.View.Animation;
 
 namespace Derring_Do
 {
@@ -412,6 +415,7 @@ namespace Derring_Do
                                          CallOfTheWild.Helpers.CreateAddAbilityResource(charmed_life_resource),
                                          CallOfTheWild.Helpers.CreateAddFact(charmed_life_ability)
                                          );
+            charmed_life.ReapplyOnLevelUp = true;
         }
 
         static void createNimble()
@@ -679,6 +683,10 @@ namespace Derring_Do
                                                                              null,
                                                                              CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
                                                                              );
+            menacing_swordplay_toggle_ability.IsOnByDefault = true;
+            menacing_swordplay_toggle_ability.DeactivateIfOwnerDisabled = false;
+            menacing_swordplay_toggle_ability.DeactivateIfCombatEnded = false;
+            menacing_swordplay_toggle_ability.DeactivateIfOwnerUnconscious = false;
 
             menacing_swordplay_deed = CreateFeature("MenacingSwordplaySwashbucklerFeature",
                                                     menacing_swordplay_buff.Name,
@@ -766,7 +774,7 @@ namespace Derring_Do
                                                    Common.createAddCondition(UnitCondition.LoseDexterityToAC)
                                                    );
 
-            var apply_buff = Common.createContextActionApplyBuff(superior_feint_debuff, Helpers.CreateContextDuration(1), dispellable: false, duration_seconds: 6);
+            var apply_buff = Common.createContextActionApplyBuff(superior_feint_debuff, Helpers.CreateContextDuration(1), dispellable: false);
 
             var superior_feint_ability = CreateAbility("SuperiorFeintSwashbucklerAbility",
                                                        "Superior Feint",
@@ -798,6 +806,12 @@ namespace Derring_Do
         static void createTargetedStrikeDeed()
         {
             var disarm = library.Get<BlueprintAbility>("45d94c6db453cfc4a9b99b72d6afe6f6"); //Disarm ability
+            var immune_to_crits = library.Get<BlueprintFeature>("ced0f4e5d02d5914a9f9ff74acacf26d"); //Immunity to crits feature
+            var immune_to_mind_affecting = library.Get<BlueprintFeature>("3eb606c0564d0814ea01a824dbe42fb0"); //Immunity to mind affecting
+            var immune_to_trip = library.Get<BlueprintFeature>("c1b26f97b974aec469613f968439e7bb");
+            var immune_to_prone = library.Get<BlueprintBuff>("7e3cd4e16a990ab4e9ffa5d9ca3c4870");
+            var confusion_buff = library.Get<BlueprintBuff>("886c7407dc629dc499b9f1465ff382df");
+            var staggered_buff = library.Get<BlueprintBuff>("df3950af5a783bd4d91ab73eb8fa0fd3");
 
             var base_name = "Targeted Strike";
 
@@ -812,7 +826,8 @@ namespace Derring_Do
                                                              "",
                                                              "",
                                                              Create<AbilityCasterSwashbucklerWeaponCheck>(),
-                                                             Create<AbilityCasterInCombat>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new Kingmaker.Blueprints.Facts.BlueprintUnitFact[] { immune_to_crits }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              Helpers.CreateRunActions(Create<DisarmTarget>()),
                                                              Helpers.Create<AttackAnimation>(),
@@ -821,15 +836,78 @@ namespace Derring_Do
             Common.setAsFullRoundAction(targeted_strike_arms_ability);
             targeted_strike_arms_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
 
+            var targeted_strike_head_ability = CreateAbility("TargetedStrikeHeadSwashbucklerAbility",
+                                                             base_name + " - Head",
+                                                             "The target is confused for 1 round. This is a mind-affecting effect.",
+                                                             "075780d93e7f4d35beca760afe16764b",
+                                                             confusion_buff.Icon, //TODO icon
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_mind_affecting }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; }),
+                                                             CreateRunActions(Common.createContextActionApplyBuff(confusion_buff, Helpers.CreateContextDuration(1), dispellable: false))
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_head_ability);
+            targeted_strike_head_ability.setMiscAbilityParametersTouchHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+
+            var targeted_strike_legs_ability = CreateAbility("TargetedStrikesLegsSwashbucklerAbility",
+                                                             base_name + " - Legs",
+                                                             "The target is knocked prone. Creatures that are immune to trip attacks are immune to this effect.",
+                                                             "00be497d03e34c26a1954f76cd3c6a48",
+                                                             null, //TODO icon
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_prone }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; }),
+                                                             CreateRunActions(Helpers.Create<ContextActionKnockdownTarget>())
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_legs_ability);
+            targeted_strike_legs_ability.setMiscAbilityParametersTouchHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+
+            var targeted_strike_torso_ability = CreateAbility("TargetedStrikeTorsoSwashbucklerAbility",
+                                                             base_name + " - Torso",
+                                                             "The target is staggered for 1 round.",
+                                                             "a5206e32a38a4cb69f1e414abe5cb491",
+                                                             null, //TODO icon
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; }),
+                                                             CreateRunActions(Common.createContextActionApplyBuff(staggered_buff, Helpers.CreateContextDuration(1), dispellable: false))
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_torso_ability);
+            targeted_strike_torso_ability.setMiscAbilityParametersTouchHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+
+            var wrapper = Common.createVariantWrapper("SwashbucklerTargetedStrikeAbility", "a7322f3c039547aa84ff4e4b6d817433", targeted_strike_arms_ability, targeted_strike_head_ability, targeted_strike_legs_ability, targeted_strike_torso_ability);
+            wrapper.SetName("Targeted Strike");
+            wrapper.SetDescription("At 7th level, as a full-round action the swashbuckler can spend 1 panache point to make an attack with a single light or one-handed piercing melee weapon that cripples part of a foe’s body. The swashbuckler chooses a part of the body to target. If the attack succeeds, in addition to the attack’s normal damage, the target suffers one of the following effects based on the part of the body targeted. If a creature doesn’t have one of the listed body locations, that body part cannot be targeted. Creatures that are immune to sneak attacks are also immune to targeted strikes. Items or abilities that protect a creature from critical hits also protect a creature from targeted strikes.");
+
             targeted_strike_deed = CreateFeature("TargetedStrikeSwashbucklerFeature",
                                                  base_name,
                                                  "At 7th level, as a full-round action the swashbuckler can spend 1 panache point to make an attack with a single light or one-handed piercing melee weapon that cripples part of a foe’s body. The swashbuckler chooses a part of the body to target. If the attack succeeds, in addition to the attack’s normal damage, the target suffers one of the following effects based on the part of the body targeted. If a creature doesn’t have one of the listed body locations, that body part cannot be targeted. Creatures that are immune to sneak attacks are also immune to targeted strikes. Items or abilities that protect a creature from critical hits also protect a creature from targeted strikes.",
                                                  "a28dc4a06df947f8b519fed5b4e72153",
                                                  null, //TODO icon
                                                  FeatureGroup.None,
-                                                 Helpers.CreateAddFact(targeted_strike_arms_ability)
+                                                 Helpers.CreateAddFact(wrapper)
                                                  );
-
         }
 
         static void createDummyConsumePanache()
@@ -1535,6 +1613,92 @@ namespace Derring_Do
                 {
                     AttackRoll = attackRoll
                 };
+                yield break;
+            }
+        }
+
+        [ComponentName("Check Target is not Immune to Precision Damage")]
+        [AllowedOn(typeof(BlueprintComponent))]
+        public class AbilityTargetNotImmuneToPrecision : BlueprintComponent, IAbilityTargetChecker
+        {
+            public bool CanTarget(UnitEntityData caster, TargetWrapper target)
+            {
+                UnitEntityData unit = target.Unit;
+                if (unit == null)
+                {
+                    return false;
+                }
+
+
+                if (target.Unit.Descriptor.Progression.Features.Enumerable.Any(f => f.Blueprint.GetComponent<AddImmunityToPrecisionDamage>() != null) || target.Unit.Descriptor.Buffs.Enumerable.Any(f => f.Blueprint.GetComponent<AddImmunityToPrecisionDamage>() != null))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        public class AbilityDeliverAttackWithWeaponOnHit : AbilityDeliverEffect
+        {
+            public override IEnumerator<AbilityDeliveryTarget> Deliver(AbilityExecutionContext context, TargetWrapper target)
+            {
+                if (target.Unit == null)
+                {
+                    UberDebug.LogError("Target unit is missing", Array.Empty<object>());
+                    yield break;
+                }
+                UnitAttack cmd = new UnitAttack(target.Unit)
+                {
+                    IsSingleAttack = true
+                };
+                cmd.Init(context.Caster);
+                cmd.Start();
+                AttackHandInfo attackHandInfo = cmd.AllAttacks.FirstOrDefault<AttackHandInfo>();
+                ItemEntityWeapon weapon = (attackHandInfo != null) ? attackHandInfo.Weapon : null;
+                if (weapon == null)
+                {
+                    UberDebug.LogError("Has no weapon for attack", Array.Empty<object>());
+                    cmd.Interrupt();
+                    yield break;
+                }
+                bool hitHandled = false;
+                bool isMelee = weapon.Blueprint.IsMelee;
+                for (; ; )
+                {
+                    if (cmd.IsFinished)
+                    {
+                        RuleAttackWithWeapon lastAttackRule = cmd.LastAttackRule;
+                        if (((lastAttackRule != null) ? lastAttackRule.Projectile : null) == null || cmd.LastAttackRule.Projectile.IsHit || cmd.LastAttackRule.Projectile.Cleared || cmd.LastAttackRule.Projectile.Destroyed)
+                        {
+                            break;
+                        }
+                    }
+                    bool wasActed = cmd.IsActed;
+                    if (!cmd.IsFinished)
+                    {
+                        cmd.Tick();
+                    }
+                    RuleAttackWithWeapon lastAttackRule2 = cmd.LastAttackRule;
+                    if (!wasActed && cmd.IsActed && isMelee)
+                    {
+                        hitHandled = true;
+                        if (lastAttackRule2.AttackRoll.IsHit)
+                        {
+                            yield return new AbilityDeliveryTarget(target);
+                        }
+                    }
+                    yield return null;
+                }
+                if (!hitHandled && !isMelee)
+                {
+                    RuleAttackWithWeapon lastAttackRule3 = cmd.LastAttackRule;
+                    bool? flag3 = (lastAttackRule3 != null) ? new bool?(lastAttackRule3.AttackRoll.IsHit) : null;
+                    if (flag3 != null && flag3.Value)
+                    {
+                        yield return new AbilityDeliveryTarget(target);
+                    }
+                }
                 yield break;
             }
         }
