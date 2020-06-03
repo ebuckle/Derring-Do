@@ -54,6 +54,10 @@ using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.UnitLogic.Buffs.Components;
 using Kingmaker.Controllers.Units;
 using Kingmaker.RuleSystem.Rules.Damage;
+using Kingmaker.UnitLogic.Mechanics.Conditions;
+using Kingmaker.UnitLogic.Mechanics.Properties;
+using Harmony12;
+using Kingmaker.UnitLogic.Class.Kineticist.Properties;
 
 namespace Derring_Do
 {
@@ -234,6 +238,9 @@ namespace Derring_Do
             createSuperiorFeintDeed();
             createTargetedStrikeDeed();
             createBleedingWoundDeed();
+            createEvasiveDeed();
+            createSubtleBlade();
+            createDizzyingDefence();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -253,11 +260,11 @@ namespace Derring_Do
                                                                        LevelEntry(8, fighter_feat),
                                                                        LevelEntry(9, swashbuckler_weapon_training),
                                                                        LevelEntry(10, charmed_life),
-                                                                       LevelEntry(11, nimble_unlock, bleeding_wound_deed),
+                                                                       LevelEntry(11, nimble_unlock, bleeding_wound_deed, evasive_deed, subtle_blade_deed),
                                                                        LevelEntry(12, fighter_feat),
                                                                        LevelEntry(13, swashbuckler_weapon_training),
                                                                        LevelEntry(14, charmed_life),
-                                                                       LevelEntry(15, nimble_unlock),
+                                                                       LevelEntry(15, nimble_unlock, dizzying_defence_deed),
                                                                        LevelEntry(16, fighter_feat),
                                                                        LevelEntry(17, swashbuckler_weapon_training),
                                                                        LevelEntry(18, charmed_life),
@@ -983,7 +990,8 @@ namespace Derring_Do
                                                                                   AbilityActivationType.Immediately,
                                                                                   UnitCommand.CommandType.Free,
                                                                                   null,
-                                                                                  CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                                  CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
+                                                                                  Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                                   );
             bleeding_wound_strength_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
             bleeding_wound_strength_toggle.DeactivateImmediately = true;
@@ -1019,7 +1027,8 @@ namespace Derring_Do
                                                                                    AbilityActivationType.Immediately,
                                                                                    UnitCommand.CommandType.Free,
                                                                                    null,
-                                                                                   CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                                   CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
+                                                                                   Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                                    );
             bleeding_wound_dexterity_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
             bleeding_wound_dexterity_toggle.DeactivateImmediately = true;
@@ -1055,7 +1064,8 @@ namespace Derring_Do
                                                                                       AbilityActivationType.Immediately,
                                                                                       UnitCommand.CommandType.Free,
                                                                                       null,
-                                                                                      CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                                      CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
+                                                                                      Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                                       );
             bleeding_wound_constitution_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
             bleeding_wound_constitution_toggle.DeactivateImmediately = true;
@@ -1071,6 +1081,103 @@ namespace Derring_Do
                                                 CallOfTheWild.Helpers.CreateAddFact(bleeding_wound_dexterity_toggle),
                                                 CallOfTheWild.Helpers.CreateAddFact(bleeding_wound_constitution_toggle)
                                                 );
+        }
+
+        static void createEvasiveDeed()
+        {
+            var evasion = library.Get<BlueprintFeature>("576933720c440aa4d8d42b0c54b77e80");
+            var uncanny_dodge = library.Get<BlueprintFeature>("3c08d842e802c3e4eb19d15496145709");
+            var improved_uncanny_dodge = library.Get<BlueprintFeature>("485a18c05792521459c7d06c63128c79");
+
+            var evasive_buff = CreateBuff("EvasiveSwashbucklerBuff",
+                                          "Evasive",
+                                          "At 11th level, while a swashbuckler has at least 1 panache point, she gains the benefits of the evasion, uncanny dodge, and improved uncanny dodge rogue class features. She uses her swashbuckler level as her rogue level for improved uncanny dodge.",
+                                          "689349bd582c4a13bbf3f9eee76bd038",
+                                          improved_uncanny_dodge.Icon,
+                                          null,
+                                          CreateAddFacts(new BlueprintUnitFact[] { evasion, uncanny_dodge, improved_uncanny_dodge })
+                                          );
+
+            var evasive_hidden_toggle = CreateActivatableAbility("EvasiveHiddenSwashbucklerToggleAbility",
+                                                                 evasive_buff.Name,
+                                                                 evasive_buff.Description,
+                                                                 "d73a856ad4c549698b863ede6d29f5a2",
+                                                                 evasive_buff.Icon,
+                                                                 evasive_buff,
+                                                                 AbilityActivationType.Immediately,
+                                                                 CommandType.Free,
+                                                                 null,
+                                                                 CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                 );
+            evasive_hidden_toggle.IsOnByDefault = true;
+            evasive_hidden_toggle.DeactivateIfOwnerDisabled = false;
+            evasive_hidden_toggle.DeactivateIfCombatEnded = false;
+            evasive_hidden_toggle.DeactivateIfOwnerUnconscious = false;
+            evasive_hidden_toggle.DeactivateImmediately = false;
+
+            evasive_deed = CreateFeature("EvasiveSwashbucklerFeature",
+                                         evasive_buff.Name,
+                                         evasive_buff.Description,
+                                         "4f5cf35a3d8047f9b3dc8258c97eb2f4",
+                                         evasive_buff.Icon,
+                                         FeatureGroup.None,
+                                         CallOfTheWild.Helpers.CreateAddFact(evasive_hidden_toggle)
+                                         );
+        }
+
+        static void createSubtleBlade()
+        {
+            subtle_blade_deed = CreateFeature("SubtleBladeSwashbucklerFeature",
+                                              "Subtle Blade",
+                                              "At 11th level, while a swashbuckler has at least 1 panache point, she is immune to disarm combat maneuvers made against a light or one-handed piercing melee weapon she is wielding.",
+                                              "987932d860cf432fae1d9ead0e9a11d1",
+                                              null, //TODO icon
+                                              FeatureGroup.None,
+                                              Create<SwashbucklerWeaponDisarmImmune>()
+                                              );
+        }
+
+        static void createDizzyingDefence()
+        {
+            var fight_defensively_buff = library.Get<BlueprintBuff>("6ffd93355fb3bcf4592a5d976b1d32a9");
+
+            dizzying_defence_deed = CreateFeature("DizzyingDefenceSwashbucklerFeature",
+                                                  "Dizzying Defence",
+                                                  "At 15th level, while wielding a light or one-handed piercing melee weapon in one hand, the swashbuckler can spend 1 panache point to take the fighting defensively action as a swift action instead of a standard action. When fighting defensively in this manner, the dodge bonus to AC gained from that action increases to +4, and the penalty to attack rolls is reduced to –2.",
+                                                  "49b5a4448e924bd2bd58289facd6ad7b",
+                                                  null, //TODO icon
+                                                  FeatureGroup.None
+                                                  );
+
+            var dizzying_defence_buff = CreateBuff("DizzyingDefenceToggleSwashbucklerBuff",
+                                                   dizzying_defence_deed.Name,
+                                                   dizzying_defence_deed.Description,
+                                                   "9800e6e70ec84664b94b4cf1125e7c42",
+                                                   dizzying_defence_deed.Icon,
+                                                   null
+                                                   );
+
+            var dizzying_defence_toggle = Helpers.CreateActivatableAbility("DizzyingDefenceSwashbucklerActivatableAbility",
+                                                                           dizzying_defence_deed.Name,
+                                                                           dizzying_defence_deed.Description,
+                                                                           "34bcda568152458abd30c30bc5dcda47",
+                                                                           dizzying_defence_deed.Icon,
+                                                                           dizzying_defence_buff,
+                                                                           AbilityActivationType.Immediately,
+                                                                           CommandType.Free,
+                                                                           null,
+                                                                           CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                           );
+            dizzying_defence_toggle.DeactivateImmediately = true;
+
+            dizzying_defence_deed.AddComponent(Helpers.CreateAddFact(dizzying_defence_toggle));
+
+            var actions = fight_defensively_buff.GetComponent<AddFactContextActions>();
+            var conditional = Helpers.CreateConditional(Common.createContextConditionCasterHasFact(dizzying_defence_buff),
+                                                        Common.createContextActionSpendResource(panache_resource, 1)
+                                                        );
+            var new_actions = CallOfTheWild.ExtensionMethods.AddToArray(actions.Activated.Actions, conditional);
+            actions.Activated.Actions = new_actions;
         }
 
         static void createDummyConsumePanache()
@@ -1273,6 +1380,22 @@ namespace Derring_Do
             }
         }
 
+        [Harmony12.HarmonyPatch(typeof(FightingDefensivelyAttackPenaltyProperty))]
+        [Harmony12.HarmonyPatch("GetInt", Harmony12.MethodType.Normal)]
+        class Patch_FightingDefensivelyAttackPenaltyProperty_GetInt
+        {
+            static BlueprintBuff dazzling_defence_buff = Main.library.Get<BlueprintBuff>("9800e6e70ec84664b94b4cf1125e7c42");
+
+            static public void Postfix(FightingDefensivelyAttackPenaltyProperty __instance, UnitEntityData unit, ref int __result)
+            {
+                Fact fact = unit.Descriptor.GetFact(dazzling_defence_buff);
+                if (fact != null)
+                {
+                    __result -= 2;
+                }
+            }
+        }
+
 
         // TODO - CONSIDER HARD CODING VALUES SINCE ONLY USED ONCE
         [ComponentName("Add Static Bonus On Initiative Check If ResourceAvailable")]
@@ -1470,6 +1593,7 @@ namespace Derring_Do
 
         [ComponentName("Check Caster is Wielding a Swashbuckler Weapon")]
         [AllowedOn(typeof(BlueprintAbility))]
+        [AllowedOn(typeof(BlueprintComponent))]
         public class AbilityCasterSwashbucklerWeaponCheck : BlueprintComponent, IAbilityCasterChecker
         {
             public bool CorrectCaster(UnitEntityData caster)
@@ -1940,5 +2064,41 @@ namespace Derring_Do
                 }
             }
         }
+
+        [ComponentName("Immune to Disarm against Swashbuckler Weapons")]
+        public class SwashbucklerWeaponDisarmImmune : RuleTargetLogicComponent<RuleCombatManeuver>
+        {
+            private BlueprintAbilityResource resource = panache_resource;
+            private int amount = 1;
+
+            public override void OnEventAboutToTrigger(RuleCombatManeuver evt)
+            {
+                if (!(evt.Type == CombatManeuver.Disarm))
+                {
+                    return;
+                }
+
+                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < amount)
+                {
+                    return;
+                }
+
+                ItemEntityWeapon maybeWeapon = evt.Target.Body.PrimaryHand.MaybeWeapon;
+                ItemEntityWeapon maybeWeapon2 = evt.Target.Body.SecondaryHand.MaybeWeapon;
+                if ((maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint))
+                {
+                    evt.AutoFailure = true;
+                }
+                else if ((maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint))
+                {
+                    evt.AutoFailure = true;
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleCombatManeuver evt)
+            {
+            }
+        }
+
     }
 }
