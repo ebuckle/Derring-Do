@@ -241,6 +241,7 @@ namespace Derring_Do
             createEvasiveDeed();
             createSubtleBlade();
             createDizzyingDefence();
+            createPerfectThrust();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -264,7 +265,7 @@ namespace Derring_Do
                                                                        LevelEntry(12, fighter_feat),
                                                                        LevelEntry(13, swashbuckler_weapon_training),
                                                                        LevelEntry(14, charmed_life),
-                                                                       LevelEntry(15, nimble_unlock, dizzying_defence_deed),
+                                                                       LevelEntry(15, nimble_unlock, dizzying_defence_deed, perfect_thrust_deed),
                                                                        LevelEntry(16, fighter_feat),
                                                                        LevelEntry(17, swashbuckler_weapon_training),
                                                                        LevelEntry(18, charmed_life),
@@ -1178,6 +1179,51 @@ namespace Derring_Do
                                                         );
             var new_actions = CallOfTheWild.ExtensionMethods.AddToArray(actions.Activated.Actions, conditional);
             actions.Activated.Actions = new_actions;
+        }
+
+        static void createPerfectThrust()
+        {
+            var buff = CreateBuff("PerfectThrustSwashbucklerBuff",
+                                  "",
+                                  "",
+                                  "5819e91fcc644de9af51c13263979a3b",
+                                  null,
+                                  null,
+                                  Create<AttackTargetsTouchAC>(),
+                                  Create<IgnoreAllDR>()
+                                  );
+            buff.SetBuffFlags(BuffFlags.HiddenInUi);
+
+            var perfect_thrust_ability = CreateAbility("PerfectThrustSwashbucklerAbility",
+                                                       "Perfect Thrust",
+                                                       "At 15th level, while the swashbuckler has at least 1 panache point, she can as a full-round action make a perfect thrust, pooling all of her attack potential into a single melee attack made with a light or one-handed piercing melee weapon. When she does, she makes the attack against the target’s touch AC, and ignores all damage reduction.",
+                                                       "b451b15ae03e4c839742e77e9ed63826",
+                                                       null, //TODO icon
+                                                       AbilityType.Extraordinary,
+                                                       CommandType.Standard,
+                                                       AbilityRange.Weapon,
+                                                       "",
+                                                       "",
+                                                       Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                       Create<AbilityCasterHasAtLeastOnePanache>(),
+                                                       Helpers.Create<AttackAnimation>(),
+                                                       Helpers.CreateRunActions(Common.createContextActionOnContextCaster(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(1), dispellable: false)),
+                                                                                Common.createContextActionAttack(Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff))),
+                                                                                                                 Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff)))
+                                                                                                                 )
+                                                                                )
+                                                       );
+            Common.setAsFullRoundAction(perfect_thrust_ability);
+            perfect_thrust_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
+
+            perfect_thrust_deed = CreateFeature("PerfectThrustSwashbucklerFeature",
+                                                perfect_thrust_ability.Name,
+                                                perfect_thrust_ability.Description,
+                                                "3b2f14ae7c664eb58b59389200e29b20",
+                                                perfect_thrust_ability.Icon,
+                                                FeatureGroup.None,
+                                                Helpers.CreateAddFact(perfect_thrust_ability)
+                                                );
         }
 
         static void createDummyConsumePanache()
@@ -2100,5 +2146,32 @@ namespace Derring_Do
             }
         }
 
+        [ComponentName("Resolve Attack against Touch AC")]
+        [AllowedOn(typeof(BlueprintBuff))]
+        public class AttackTargetsTouchAC : RuleInitiatorLogicComponent<RuleAttackRoll>
+        {
+            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
+            {
+                evt.AttackType = AttackType.Touch;
+            }
+
+            public override void OnEventDidTrigger(RuleAttackRoll evt)
+            {
+            }
+        }
+
+        [ComponentName("Ignore all DR")]
+        [AllowedOn(typeof(BlueprintBuff))]
+        public class IgnoreAllDR : RuleInitiatorLogicComponent<RuleDealDamage>
+        {
+            public override void OnEventAboutToTrigger(RuleDealDamage evt)
+            {
+                evt.IgnoreDamageReduction = true;
+            }
+
+            public override void OnEventDidTrigger(RuleDealDamage evt)
+            {
+            }
+        }
     }
 }
