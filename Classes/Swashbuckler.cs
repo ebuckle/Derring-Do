@@ -58,6 +58,7 @@ using Kingmaker.UnitLogic.Mechanics.Conditions;
 using Kingmaker.UnitLogic.Mechanics.Properties;
 using Harmony12;
 using Kingmaker.UnitLogic.Class.Kineticist.Properties;
+using Kingmaker.UnitLogic.Buffs;
 
 namespace Derring_Do
 {
@@ -234,7 +235,7 @@ namespace Derring_Do
             createMenacingSwordplayDeed();
             createPreciseStrikeDeed();
             createSwashbucklerInitiativeDeed();
-            //createSwashbucklersGraceDeed();
+            createSwashbucklersGraceDeed();
             createSuperiorFeintDeed();
             createTargetedStrikeDeed();
             createBleedingWoundDeed();
@@ -242,6 +243,7 @@ namespace Derring_Do
             createSubtleBlade();
             createDizzyingDefence();
             createPerfectThrust();
+            createSwashbucklersEdge();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -257,7 +259,7 @@ namespace Derring_Do
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
                                                                        LevelEntry(5, swashbuckler_weapon_training),
                                                                        LevelEntry(6, charmed_life),
-                                                                       LevelEntry(7, nimble_unlock, superior_feint_deed, targeted_strike_deed),
+                                                                       LevelEntry(7, nimble_unlock, swashbucklers_grace_deed, superior_feint_deed, targeted_strike_deed),
                                                                        LevelEntry(8, fighter_feat),
                                                                        LevelEntry(9, swashbuckler_weapon_training),
                                                                        LevelEntry(10, charmed_life),
@@ -265,7 +267,7 @@ namespace Derring_Do
                                                                        LevelEntry(12, fighter_feat),
                                                                        LevelEntry(13, swashbuckler_weapon_training),
                                                                        LevelEntry(14, charmed_life),
-                                                                       LevelEntry(15, nimble_unlock, dizzying_defence_deed, perfect_thrust_deed),
+                                                                       LevelEntry(15, nimble_unlock, dizzying_defence_deed, perfect_thrust_deed, swashbucklers_edge_deed),
                                                                        LevelEntry(16, fighter_feat),
                                                                        LevelEntry(17, swashbuckler_weapon_training),
                                                                        LevelEntry(18, charmed_life),
@@ -757,16 +759,50 @@ namespace Derring_Do
 
         static void createSwashbucklersGraceDeed()
         {
-            var 
-
             swashbucklers_grace_deed = CreateFeature("SwashbucklersGraceSwashbucklerFeature",
-                                                     "Swashbuckler's Grace",
-                                                     "At 7th level, while the swashbuckler has at least 1 panache point, she takes no penalty for moving at full speed when she uses Acrobatics to attempt to move through a threatened area or an enemy’s space.",
-                                                     "dc10b82b73684935a25891aabaee5cf2",
-                                                     null, //TODO icon
-                                                     FeatureGroup.None,
-                                                     Common.createAddConditionImmunity(UnitCondition.UseMobilityToNegateAttackOfOpportunity)
-                                                     );
+                                         "Swashbuckler's Grace",
+                                         "At 7th level, while the swashbuckler has at least 1 panache point, she takes no penalty for moving at full speed when she uses Acrobatics to attempt to move through a threatened area or an enemy’s space.",
+                                         "dc10b82b73684935a25891aabaee5cf2",
+                                         null, //TODO icon
+                                         FeatureGroup.None
+                                         );
+            
+            /*
+            var mobility_toggle = library.Get<BlueprintActivatableAbility>("4be5757b85af47545a5789f1d03abda9");
+            var mobility_buff = library.Get<BlueprintBuff>("9dc2afb96879cfd4bb7aed475ed51002");
+
+            var slow_buff = Helpers.CreateBuff("MobilitySlowBuff",
+                                               "BOY YOU SLOW",
+                                               "SLOOOOOOOOOOOOOOOOOOOOOW",
+                                               "9d4609a851234115af3f584109388a22",
+                                               null,
+                                               null,
+                                               Create<AddCondition>(a => a.Condition = UnitCondition.Slowed)
+                                               );
+            var apply_slow = Helpers.CreateApplyBuff(slow_buff, CreateContextDuration(), false, dispellable: false, permanent: true);
+            //slow_buff.SetBuffFlags(BuffFlags.HiddenInUi);
+
+            var aoo_buff = Helpers.CreateBuff("MobilityAOOBuff",
+                                               mobility_buff.Name,
+                                               mobility_buff.Description + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                                               "aeef4f7a6c52481b97c7ed2c4507ee5a",
+                                               mobility_buff.Icon,
+                                               mobility_buff.FxOnStart,
+                                               Create<AddCondition>(a => a.Condition = UnitCondition.UseMobilityToNegateAttackOfOpportunity)
+                                               );
+
+            var conditional_has_panache = CallOfTheWild.Helpers.CreateConditional(Create<ContextConditionTargetHasEnoughResource>(c => { c.amount = 1; c.resource = panache_resource; }),
+                                                                                  null,
+                                                                                  Helpers.CreateApplyBuff(slow_buff, CreateContextDuration(), false, dispellable: false, permanent: true)
+                                                                                  );
+            var conditional_has_deed = CallOfTheWild.Helpers.CreateConditional(Common.createContextConditionCasterHasFact(swashbucklers_grace_deed),
+                                                                               conditional_has_panache,
+                                                                               apply_slow
+                                                                               );
+
+            mobility_toggle.Buff = aoo_buff;
+            mobility_toggle.AddComponent(CreateRunActions(conditional_has_deed));
+            */
         }
 
         static void createSuperiorFeintDeed()
@@ -1179,6 +1215,8 @@ namespace Derring_Do
                                                         );
             var new_actions = CallOfTheWild.ExtensionMethods.AddToArray(actions.Activated.Actions, conditional);
             actions.Activated.Actions = new_actions;
+
+            // TODO - AC Buff
         }
 
         static void createPerfectThrust()
@@ -1224,6 +1262,43 @@ namespace Derring_Do
                                                 FeatureGroup.None,
                                                 Helpers.CreateAddFact(perfect_thrust_ability)
                                                 );
+        }
+
+        static void createSwashbucklersEdge()
+        {
+            var swashbucklers_edge_buff = CreateBuff("SwashbucklersEdgeSwashbucklerBuff",
+                                                     "Swashbuckler's Edge",
+                                                     "At 15th level, while the swashbuckler has at least 1 panache point, she can take 10 on any Athletics or Mobility check, even while distracted or in immediate danger. She can use this ability in conjunction with the derring-do deed.",
+                                                     "a2c643b0efad440aa3a38c48f9f59c0b",
+                                                     null, //TODO icon
+                                                     null,
+                                                     Create<TakeTenOnAthleticsAndMobility>()
+                                                     );
+
+            var swashbucklers_edge_toggle_ability = CreateActivatableAbility("SwashbucklersEdgeSwashbucklerActivatableAbility",
+                                                                             swashbucklers_edge_buff.Name,
+                                                                             swashbucklers_edge_buff.Description,
+                                                                             "0939dc9b6e6b47eabf965b4e0d4d3a22",
+                                                                             swashbucklers_edge_buff.Icon,
+                                                                             swashbucklers_edge_buff,
+                                                                             AbilityActivationType.Immediately,
+                                                                             CommandType.Free,
+                                                                             null,
+                                                                             CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                             );
+            swashbucklers_edge_toggle_ability.IsOnByDefault = true;
+            swashbucklers_edge_toggle_ability.DeactivateIfOwnerDisabled = false;
+            swashbucklers_edge_toggle_ability.DeactivateIfCombatEnded = false;
+            swashbucklers_edge_toggle_ability.DeactivateIfOwnerUnconscious = false;
+
+            swashbucklers_edge_deed = CreateFeature("SwashbucklersEdgeSwashbucklerFeature",
+                                                    swashbucklers_edge_buff.Name,
+                                                    swashbucklers_edge_buff.Description,
+                                                    "bb4bd22679b0461aa0118b46fda3e6af",
+                                                    swashbucklers_edge_buff.Icon,
+                                                    FeatureGroup.None,
+                                                    CallOfTheWild.Helpers.CreateAddFact(swashbucklers_edge_toggle_ability)
+                                                    );
         }
 
         static void createDummyConsumePanache()
@@ -1946,7 +2021,7 @@ namespace Derring_Do
                 {
                     return;
                 };
-                owner.Descriptor.Resources.Spend(panache_resource, amount);
+                owner.Descriptor.Resources.Spend(resource, amount);
             }
         }
 
@@ -2171,6 +2246,46 @@ namespace Derring_Do
 
             public override void OnEventDidTrigger(RuleDealDamage evt)
             {
+            }
+        }
+
+        [ComponentName("Take 10 on Athletics and Mobility")]
+        [AllowedOn(typeof(BlueprintBuff))]
+        public class TakeTenOnAthleticsAndMobility : RuleInitiatorLogicComponent<RuleSkillCheck>
+        {
+            public override void OnEventAboutToTrigger(RuleSkillCheck evt)
+            {
+                if (!(evt.StatType == StatType.SkillAthletics || evt.StatType == StatType.SkillMobility))
+                {
+                    return;
+                }
+
+                evt.Take10ForSuccess = true;
+            }
+
+            public override void OnEventDidTrigger(RuleSkillCheck evt)
+            {
+            }
+        }
+
+        [Harmony12.HarmonyPatch(typeof(UnitEntityData))]
+        [Harmony12.HarmonyPatch("CalculateSpeedModifier", Harmony12.MethodType.Normal)]
+        class Patch_UnitEntityData_CalculateSpeedModifier
+        {
+            private static BlueprintBuff mobility_buff = library.Get<BlueprintBuff>("9dc2afb96879cfd4bb7aed475ed51002");
+            private static BlueprintFeature deed = swashbucklers_grace_deed;
+
+            static public void Postfix(UnitEntityData __instance, ref float __result)
+            {
+                if (Game.Instance.CurrentlyLoadedArea.IsCapital)
+                {
+                    return;
+                }
+
+                if (__instance.Descriptor.HasFact(mobility_buff) && __instance.Descriptor.HasFact(deed))
+                {
+                    __result *= 2.0f; //TODO - decide action - currently negates Mobility debuff but not Slowed
+                }
             }
         }
     }
