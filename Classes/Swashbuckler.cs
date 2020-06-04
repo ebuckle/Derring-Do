@@ -382,6 +382,8 @@ namespace Derring_Do
 
         static void createCharmedLife()
         {
+            var bravery = library.Get<BlueprintFeature>("f6388946f9f472f4585591b80e9f2452");
+
             var charmed_life_resource = CreateAbilityResource("SwashbucklerCharmedLifeResource", "", "", "cdaca00ebd144d8b870390fb6a09640f", null);
             charmed_life_resource.SetIncreasedByLevelStartPlusDivStep(3, 2, 0, 4, 1, 0, 0.0f, getSwashbucklerArray());
 
@@ -393,7 +395,7 @@ namespace Derring_Do
                                                "Charmed Life",
                                                "At 2nd level, the swashbuckler gains a knack for getting out of trouble. Three times per day as an immediate action before attempting a saving throw, she can add her Charisma modifier to the result of the save. She must choose to do this before the roll is made. At 6th level and every 4 levels thereafter, the number of times she can do this per day increases by one (to a maximum of 7 times per day at 18th level).",
                                                "ab653c76fc2744d9b51b40b0cffc9f3d",
-                                               null, //TODO Icon
+                                               bravery.Icon, //TODO Icon
                                                null,
                                                CreateAddContextStatBonus(StatType.SaveFortitude, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
                                                CreateAddContextStatBonus(StatType.SaveReflex, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
@@ -420,10 +422,10 @@ namespace Derring_Do
             charmed_life_ability.setMiscAbilityParametersSelfOnly();
 
             charmed_life = CreateFeature("CharmedLifeSwashbucklerFeature",
-                                         "Charmed Life",
-                                         "At 2nd level, the swashbuckler gains a knack for getting out of trouble. Three times per day as an immediate action before attempting a saving throw, she can add her Charisma modifier to the result of the save. She must choose to do this before the roll is made. At 6th level and every 4 levels thereafter, the number of times she can do this per day increases by one (to a maximum of 7 times per day at 18th level).",
+                                         charmed_life_buff.Name,
+                                         charmed_life_buff.Description,
                                          "d96ad2e0ec4945d5b643119c1b173eaf",
-                                         null, //TODO icon
+                                         charmed_life_buff.Icon, //TODO icon
                                          FeatureGroup.None,
                                          CallOfTheWild.Helpers.CreateAddAbilityResource(charmed_life_resource),
                                          CallOfTheWild.Helpers.CreateAddFact(charmed_life_ability)
@@ -433,11 +435,13 @@ namespace Derring_Do
 
         static void createNimble()
         {
+            var armor_training = library.Get<BlueprintFeature>("3c380607706f209499d951b29d3c44f3");
+            
             var nimble_bonus = CreateFeature("NimbleSwashbucklerFeature",
                                              "Nimble",
                                              "At 3rd level, a swashbuckler gains a +1 dodge bonus to AC while wearing light or no armor. Anything that causes the swashbuckler to lose her Dexterity bonus to AC also causes her to lose this dodge bonus. This bonus increases by 1 for every 4 levels beyond 3rd (to a maximum of +5 at 19th level).",
                                              "c9fc9521fe41460aa0a52c0a8405c811",
-                                             null,
+                                             armor_training.Icon,
                                              FeatureGroup.None,
                                              CreateAddContextStatBonus(StatType.AC, ModifierDescriptor.Dodge),
                                              CreateContextRankConfig(baseValueType: ContextRankBaseValueType.ClassLevel, classes: getSwashbucklerArray(),
@@ -476,11 +480,13 @@ namespace Derring_Do
 
         static void createSwashbucklerWeaponTraining()
         {
+            var weapon_training = library.Get<BlueprintFeatureSelection>("b8cecf4e5e464ad41b79d5b42b76b399");
+
             swashbuckler_weapon_training = CreateFeature("SwashbucklerWeaponTrainingSwashbucklerFeature",
                                                          "Swashbuckler Weapon Training",
                                                          "At 5th level, a swashbuckler gains a +1 bonus on attack and damage rolls with one-handed or light piercing melee weapons. While wielding such a weapon, she gains the benefit of the Improved Critical feat. These attack and damage bonuses increase by 1 for every 4 levels beyond 5th level (to a maximum of +4 at 17th level).",
                                                          "ac1b0c88a06346b4a0fe35465a74daff",
-                                                         null, //TODO: Icon
+                                                         weapon_training.Icon,
                                                          FeatureGroup.None,
                                                          Create<WeaponTraining>(),
                                                          Create<WeaponTrainingBonuses>(w => { w.Stat = StatType.AdditionalAttackBonus; w.Descriptor = ModifierDescriptor.UntypedStackable; }),
@@ -495,11 +501,13 @@ namespace Derring_Do
 
         static void createSwashbucklerWeaponMastery()
         {
+            var weapon_mastery = library.Get<BlueprintFeature>("73c471386ce917c4c8c9f70d46b48eeb");
+            
             swashbuckler_weapon_mastery = CreateFeature("SwashbucklerWeaponMasterySwashbucklerFeature",
                                                         "Swashbuckler Weapon Mastery",
                                                         "At 20th level, when a swashbuckler threatens a critical hit with a light or one-handed piercing melee weapon, that critical is automatically confirmed. Furthermore, the critical modifiers of such weapons increase by 1 (×2 becomes ×3, and so on).",
                                                         "8878bda013664dc89339352271d005fc",
-                                                        null, //TODO Icon
+                                                        weapon_mastery.Icon,
                                                         FeatureGroup.None,
                                                         Create<CritAutoconfirmWithSwashbucklerWeapons>(),
                                                         Create<IncreasedCriticalMultiplierWithSwashbucklerWeapon>()
@@ -544,11 +552,13 @@ namespace Derring_Do
 
         static void createDodgingPanacheDeed()
         {
+            var dextrous_duelist = library.Get<BlueprintFeature>("b701196306bb4674bb902c9f1160180f");
+
             var dodging_panache_buff = CreateBuff("DodgingPanacheSwashbucklerBuff",
                                                   "Dodging Panache",
                                                   "At 1st level, when an opponent attempts a melee attack against the swashbuckler, the swashbuckler can as an immediate action spend 1 panache point to gain a dodge bonus to AC equal to her Charisma modifier (minimum 0) against the triggering attack. The swashbuckler can only perform this deed while wearing light or no armor.",
                                                   "c466576d4a784d3f94300e08afa57784",
-                                                  null, //TODO - icon
+                                                  dextrous_duelist.Icon,
                                                   null, //TODO - animation
                                                   Create<AddACBonusOnAttackAndConsumePanache>()
                                                   );
@@ -589,7 +599,7 @@ namespace Derring_Do
                                                               "Opportune Parry and Riposte",
                                                               "At 1st level, when an opponent makes a melee attack against the swashbuckler, she can spend 1 panache point and expend a use of an attack of opportunity to attempt to parry that attack. The swashbuckler makes an attack roll as if she were making an attack of opportunity; for each size category the attacking creature is larger than the swashbuckler, the swashbuckler takes a –2 penalty on this roll. If her result is greater than the attacking creature’s result, the creature’s attack automatically misses. The swashbuckler must declare the use of this ability after the creature’s attack is announced, but before its attack roll is made. Upon performing a successful parry and if she has at least 1 panache point, the swashbuckler can as an immediate action make an attack against the creature whose attack she parried, provided that creature is within her reach. This deed’s cost cannot be reduced by any ability or effect that reduces the number of panache points a deed costs.",
                                                               "a48086ca55a7472284780720a79deb03",
-                                                              duelist_parry.Icon, //TODO icon
+                                                              duelist_parry.Icon,
                                                               null, //TODO fx
                                                               Create<SwashbucklerParryAndRiposte>(s => s.AttackerCondition = null)
                                                               );
@@ -600,7 +610,7 @@ namespace Derring_Do
                                                                     opportune_parry_and_riposte_buff.Name,
                                                                     opportune_parry_and_riposte_buff.Description,
                                                                     "5b048c5e44904f5382d968d0d2f561d2",
-                                                                    opportune_parry_and_riposte_buff.Icon, //TODO Icon
+                                                                    opportune_parry_and_riposte_buff.Icon,
                                                                     AbilityType.Extraordinary,
                                                                     CommandType.Swift,
                                                                     AbilityRange.Personal,
@@ -675,6 +685,7 @@ namespace Derring_Do
 
         static void createMenacingSwordplayDeed()
         {
+            var shatter_confidence = library.Get<BlueprintFeature>("51f5a63f1a0cb9047acdad77fc437312");
             var cornugon_smash = library.Get<BlueprintFeature>("ceea53555d83f2547ae5fc47e0399e14");
             var demoralize_action = ((Conditional)cornugon_smash.GetComponent<AddInitiatorAttackWithWeaponTrigger>().Action.Actions[0]).IfTrue.Actions[0];
 
@@ -682,7 +693,7 @@ namespace Derring_Do
                                                      "Menacing Swordplay",
                                                      "At 3rd level, while she has at least 1 panache point, when a swashbuckler hits an opponent with a light or one-handed piercing melee weapon, she can choose to use Intimidate to demoralize that opponent as a swift action instead of a standard action.",
                                                      "0a1b5e625521446d9e4f2d0f30eb758a",
-                                                     cornugon_smash.Icon,
+                                                     shatter_confidence.Icon,
                                                      null,
                                                      Create<IndimidateOnHitWithSwashbucklerWeapon>(i => i.demoralize_action = demoralize_action)
                                                      );
@@ -766,11 +777,13 @@ namespace Derring_Do
 
         static void createSwashbucklersGraceDeed()
         {
+            var fast_movement = library.Get<BlueprintFeature>("d294a5dddd0120046aae7d4eb6cbc4fc");
+
             swashbucklers_grace_deed = CreateFeature("SwashbucklersGraceSwashbucklerFeature",
                                          "Swashbuckler's Grace",
                                          "At 7th level, while the swashbuckler has at least 1 panache point, she takes no penalty for moving at full speed when she uses Acrobatics to attempt to move through a threatened area or an enemy’s space.",
                                          "dc10b82b73684935a25891aabaee5cf2",
-                                         null, //TODO icon
+                                         fast_movement.Icon,
                                          FeatureGroup.None
                                          );
             
@@ -828,14 +841,17 @@ namespace Derring_Do
             var immune_to_prone = library.Get<BlueprintBuff>("7e3cd4e16a990ab4e9ffa5d9ca3c4870");
             var confusion_buff = library.Get<BlueprintBuff>("886c7407dc629dc499b9f1465ff382df");
             var staggered_buff = library.Get<BlueprintBuff>("df3950af5a783bd4d91ab73eb8fa0fd3");
+            var touch_of_fatigue = library.Get<BlueprintAbility>("5bf3315ce1ed4d94e8805706820ef64d");
+            var grease = library.Get<BlueprintAbility>("95851f6e85fe87d4190675db0419d112");
 
+            
             var base_name = "Targeted Strike";
 
             var targeted_strike_arms_ability = CreateAbility("TargetedStrikeArmsSwashbucklerAbility",
                                                              base_name + " - Arms",
                                                              "The target takes no damage from the attack, but it is disarmed.",
                                                              "80bbdc295bd649bea280c7ed23ad5c37",
-                                                             disarm.Icon, //TODO icon
+                                                             touch_of_fatigue.Icon,
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -876,7 +892,7 @@ namespace Derring_Do
                                                              base_name + " - Legs",
                                                              "The target is knocked prone. Creatures that are immune to trip attacks are immune to this effect.",
                                                              "00be497d03e34c26a1954f76cd3c6a48",
-                                                             null, //TODO icon
+                                                             grease.Icon, //TODO icon
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -896,7 +912,7 @@ namespace Derring_Do
                                                              base_name + " - Torso",
                                                              "The target is staggered for 1 round.",
                                                              "a5206e32a38a4cb69f1e414abe5cb491",
-                                                             null, //TODO icon
+                                                             staggered_buff.Icon, //TODO icon
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -1195,6 +1211,8 @@ namespace Derring_Do
 
         static void createPerfectThrust()
         {
+            var exploit_weakness = library.Get<BlueprintFeature>("374a73288a36e2d4f9e54c75d2e6e573");
+
             var buff = CreateBuff("PerfectThrustSwashbucklerBuff",
                                   "",
                                   "",
@@ -1210,7 +1228,7 @@ namespace Derring_Do
                                                        "Perfect Thrust",
                                                        "At 15th level, while the swashbuckler has at least 1 panache point, she can as a full-round action make a perfect thrust, pooling all of her attack potential into a single melee attack made with a light or one-handed piercing melee weapon. When she does, she makes the attack against the target’s touch AC, and ignores all damage reduction.",
                                                        "b451b15ae03e4c839742e77e9ed63826",
-                                                       null, //TODO icon
+                                                       exploit_weakness.Icon,
                                                        AbilityType.Extraordinary,
                                                        CommandType.Standard,
                                                        AbilityRange.Weapon,
@@ -1352,7 +1370,7 @@ namespace Derring_Do
                                                 "Stunning Stab",
                                                 "At 19th level, when a swashbuckler hits a creature with a light or one-handed piercing melee weapon, she can spend 2 panache points to stun the creature for 1 round. The creature must succeed at a Fortitude saving throw (DC = 10 + 1/2 the swashbuckler’s level + the swashbuckler’s Dexterity modifier) or be stunned for 1 round. Creatures that are immune to critical hits are also immune to this effect.",
                                                 "0dd0384bdc5d46e8842569b0cf6810b8",
-                                                null, //TODO icon
+                                                stunned_buff.Icon,
                                                 null,
                                                 Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.Action = action; a.OnlyHit = true; a.DuelistWeapon = true; }),
                                                 Common.createContextCalculateAbilityParamsBasedOnClass(swashbuckler_class, StatType.Dexterity)
@@ -2326,7 +2344,6 @@ namespace Derring_Do
                 {
                     baseDamage.IgnoreReduction = true;
                 }
-                evt.IgnoreDamageReduction = true;
             }
 
             public override void OnEventDidTrigger(RuleDealDamage evt)
