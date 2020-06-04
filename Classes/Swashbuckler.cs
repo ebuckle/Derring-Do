@@ -282,7 +282,7 @@ namespace Derring_Do
             swashbuckler_progression.UIDeterminatorsGroup = new BlueprintFeatureBase[] { swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds };
             swashbuckler_progression.UIGroups = new UIGroup[] { CreateUIGroup(fighter_feat),
                                                                 CreateUIGroup(nimble_unlock),
-                                                                CreateUIGroup(swashbuckler_weapon_training),
+                                                                CreateUIGroup(swashbuckler_weapon_training, swashbuckler_weapon_mastery),
                                                                 CreateUIGroup(charmed_life)
                                                                 };
         }
@@ -501,13 +501,13 @@ namespace Derring_Do
 
         static void createSwashbucklerWeaponMastery()
         {
-            var weapon_mastery = library.Get<BlueprintFeature>("73c471386ce917c4c8c9f70d46b48eeb");
+            var spellstrike = library.Get<BlueprintFeature>("be50f4e97fff8a24ba92561f1694a945");
             
             swashbuckler_weapon_mastery = CreateFeature("SwashbucklerWeaponMasterySwashbucklerFeature",
                                                         "Swashbuckler Weapon Mastery",
                                                         "At 20th level, when a swashbuckler threatens a critical hit with a light or one-handed piercing melee weapon, that critical is automatically confirmed. Furthermore, the critical modifiers of such weapons increase by 1 (×2 becomes ×3, and so on).",
                                                         "8878bda013664dc89339352271d005fc",
-                                                        weapon_mastery.Icon,
+                                                        spellstrike.Icon,
                                                         FeatureGroup.None,
                                                         Create<CritAutoconfirmWithSwashbucklerWeapons>(),
                                                         Create<IncreasedCriticalMultiplierWithSwashbucklerWeapon>()
@@ -517,11 +517,13 @@ namespace Derring_Do
         //DEEDS
         static void createDerringDoDeed()
         {
+            var longstrider = library.Get<BlueprintAbility>("14c90900b690cac429b229efdf416127");
+
             var derring_do_buff = CreateBuff("DerringDoSwashbucklerBuff",
                                              "Derring-Do",
                                              "At 1st level, a swashbuckler can spend 1 panache point when she makes an Athletics or Mobility check to roll 1d6 and add the result to the check. She can do this after she makes the check but before the result is revealed. If the result of the d6 roll is a natural 6, she rolls another 1d6 and adds it to the check. She can continue to do this as long as she rolls natural 6s, up to a number of times equal to her Dexterity modifier (minimum 1).",
                                              "1ec72614c5fe40deba1fd3553124389b",
-                                             null, // TODO - icon
+                                             longstrider.Icon,
                                              null,
                                              Create<AddExplodingD6sToDerringDoSkillChecks>()
                                              );
@@ -633,12 +635,14 @@ namespace Derring_Do
 
         static void createKipUpDeed()
         {
+            var freedom_of_movement = library.Get<BlueprintAbility>("4c349361d720e844e846ad8c19959b1e");
+
             var kip_up_buff = CreateBuff("KipUpSwashbucklerBuff",
                                          "Kip-Up",
                                          "At 3rd level, while the swashbuckler has at least 1 panache point, she can kip-up from prone as a move action without provoking an attack of opportunity. She can kip-up as a swift action instead by spending 1 panache point.",
                                          "e9e1fe13e22241938599e713869e343e",
-                                         null, //TODO icon
-                                         null, //TODO fx
+                                         freedom_of_movement.Icon,
+                                         null,
                                          AddMechanicsFeature.MechanicsFeatureType.GetUpWithoutAttackOfOpportunity.CreateAddMechanics()
                                          );
 
@@ -646,7 +650,7 @@ namespace Derring_Do
                                                                  kip_up_buff.Name,
                                                                  kip_up_buff.Description,
                                                                  "a28cb94820194c94b6d6e28199a4aebe",
-                                                                 null,
+                                                                 kip_up_buff.Icon,
                                                                  kip_up_buff,
                                                                  AbilityActivationType.Immediately,
                                                                  CommandType.Free,
@@ -662,7 +666,7 @@ namespace Derring_Do
                                                                             kip_up_buff.Name + " (Swift Action)",
                                                                             kip_up_buff.Description,
                                                                             "0483e5e0c19d4fd59a1cb381adebc619",
-                                                                            null, //TODO icon
+                                                                            kip_up_buff.Icon,
                                                                             null,
                                                                             AbilityActivationType.Immediately,
                                                                             CommandType.Swift,
@@ -676,7 +680,7 @@ namespace Derring_Do
                                         kip_up_buff.Name,
                                         kip_up_buff.Description,
                                         "af26a97f3bf9470aa08bbe78967184f1",
-                                        null, //TODO icon
+                                        kip_up_buff.Icon, //TODO icon
                                         FeatureGroup.None,
                                         CallOfTheWild.Helpers.CreateAddFact(kip_up_toggle_ability),
                                         CallOfTheWild.Helpers.CreateAddFact(kip_up_swift_activatable_ability)
@@ -726,12 +730,14 @@ namespace Derring_Do
 
         static void createPreciseStrikeDeed()
         {
+            var inspire_heroics = library.Get<BlueprintFeature>("199d6fa0de149d044a8ab622a542cc79");
+
             var precise_strike_buff = CreateBuff("PreciseStrikeSwashbucklerBuff",
                                                  "Precise Strike",
                                                  "At 3rd level, while she has at least 1 panache point, a swashbuckler gains the ability to strike precisely with a light or one-handed piercing melee weapon (though not natural weapon attacks), adding her swashbuckler level to the damage dealt. To use this deed, a swashbuckler cannot attack with a weapon in her other hand or use a shield other than a buckler. Any creature that is immune to sneak attacks is immune to the additional damage granted by precise strike, and any item or ability that protects a creature from critical hits also protects a creature from the additional damage of a precise strike. This additional damage is precision damage, and isn’t multiplied on a critical hit. As a swift action, a swashbuckler can spend 1 panache point to double her precise strike’s damage bonus on the next attack. This benefit must be used before the end of her turn, or it is lost. This deed’s cost cannot be reduced by any ability or effect that reduces the amount of panache points a deed costs (such as the Signature Deed feat).",
                                                  "8fa7914d1d734478b9f863e7a514427e",
-                                                 null, //TODO icon
-                                                 null, //TODO fx
+                                                 inspire_heroics.Icon,
+                                                 null,
                                                  Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => a.is_passive = false)
                                                  );
 
@@ -764,11 +770,13 @@ namespace Derring_Do
 
         static void createSwashbucklerInitiativeDeed()
         {
+            var detect_magic = library.Get<BlueprintFeature>("ee0b69e90bac14446a4cf9a050f87f2e");
+
             swashbuckler_initiative_deed = CreateFeature("SwashbucklerInitiativeDeedSwashbucklerFeature",
                                                          "Swashbuckler Initiative",
                                                          "At 3rd level, while the swashbuckler has at least 1 panache point, she gains a +2 bonus on initiative checks.",
                                                          "7afa78acfbe142ff99125c2a2e253362",
-                                                         null, //TODO icon
+                                                         detect_magic.Icon, //TODO icon
                                                          FeatureGroup.None
                                                          );
 
@@ -794,11 +802,13 @@ namespace Derring_Do
 
         static void createSuperiorFeintDeed()
         {
+            var confounding_duelist = library.Get<BlueprintFeature>("8c52fa6538e9ea6478981dbf42c2782d");
+
             var superior_feint_debuff = CreateBuff("SuperiorFeintEnemyDebuff",
                                                    "Superior Feint",
                                                    "Target is is denied its Dexterity bonus to AC.",
                                                    "9bfd81378c0c4a798115fda7f36e43f2",
-                                                   null, //TODO icon
+                                                   confounding_duelist.Icon,
                                                    null, //TODO fx
                                                    Common.createAddCondition(UnitCondition.LoseDexterityToAC)
                                                    );
@@ -806,10 +816,10 @@ namespace Derring_Do
             var apply_buff = Common.createContextActionApplyBuff(superior_feint_debuff, Helpers.CreateContextDuration(1), dispellable: false);
 
             var superior_feint_ability = CreateAbility("SuperiorFeintSwashbucklerAbility",
-                                                       "Superior Feint",
+                                                       superior_feint_debuff.Name,
                                                        "At 7th level, a swashbuckler with at least 1 panache point can, as a standard action, purposefully miss a creature she could make a melee attack against with a wielded light or one-handed piercing weapon. When she does, the creature is denied its Dexterity bonus to AC until the start of the swashbuckler’s next turn.",
                                                        "ed17ecaa24934fb68c7182d05ded73ad",
-                                                       null, //TODO icon
+                                                       superior_feint_debuff.Icon, //TODO icon
                                                        AbilityType.Extraordinary,
                                                        CommandType.Standard,
                                                        AbilityRange.Weapon,
@@ -824,7 +834,7 @@ namespace Derring_Do
 
             superior_feint_deed = CreateFeature("SuperiorFeintSwashbucklerFeature",
                                                 superior_feint_debuff.Name,
-                                                "At 7th level, a swashbuckler with at least 1 panache point can, as a standard action, purposefully miss a creature she could make a melee attack against with a wielded light or one-handed piercing weapon. When she does, the creature is denied its Dexterity bonus to AC until the start of the swashbuckler’s next turn.",
+                                                superior_feint_ability.Description,
                                                 "5f24450e21af46598dd7409f42f4edc5",
                                                 superior_feint_debuff.Icon,
                                                 FeatureGroup.None,
@@ -841,9 +851,9 @@ namespace Derring_Do
             var immune_to_prone = library.Get<BlueprintBuff>("7e3cd4e16a990ab4e9ffa5d9ca3c4870");
             var confusion_buff = library.Get<BlueprintBuff>("886c7407dc629dc499b9f1465ff382df");
             var staggered_buff = library.Get<BlueprintBuff>("df3950af5a783bd4d91ab73eb8fa0fd3");
-            var touch_of_fatigue = library.Get<BlueprintAbility>("5bf3315ce1ed4d94e8805706820ef64d");
+            var magus_feats = library.Get<BlueprintFeatureSelection>("66befe7b24c42dd458952e3c47c93563");
             var grease = library.Get<BlueprintAbility>("95851f6e85fe87d4190675db0419d112");
-
+            var true_strike = library.Get<BlueprintAbility>("2c38da66e5a599347ac95b3294acbe00");
             
             var base_name = "Targeted Strike";
 
@@ -851,7 +861,7 @@ namespace Derring_Do
                                                              base_name + " - Arms",
                                                              "The target takes no damage from the attack, but it is disarmed.",
                                                              "80bbdc295bd649bea280c7ed23ad5c37",
-                                                             touch_of_fatigue.Icon,
+                                                             magus_feats.Icon,
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -931,12 +941,13 @@ namespace Derring_Do
             var wrapper = Common.createVariantWrapper("SwashbucklerTargetedStrikeAbility", "a7322f3c039547aa84ff4e4b6d817433", targeted_strike_arms_ability, targeted_strike_head_ability, targeted_strike_legs_ability, targeted_strike_torso_ability);
             wrapper.SetName("Targeted Strike");
             wrapper.SetDescription("At 7th level, as a full-round action the swashbuckler can spend 1 panache point to make an attack with a single light or one-handed piercing melee weapon that cripples part of a foe’s body. The swashbuckler chooses a part of the body to target. If the attack succeeds, in addition to the attack’s normal damage, the target suffers one of the following effects based on the part of the body targeted. If a creature doesn’t have one of the listed body locations, that body part cannot be targeted. Creatures that are immune to sneak attacks are also immune to targeted strikes. Items or abilities that protect a creature from critical hits also protect a creature from targeted strikes.");
+            wrapper.SetIcon(true_strike.Icon);
 
             targeted_strike_deed = CreateFeature("TargetedStrikeSwashbucklerFeature",
                                                  base_name,
                                                  "At 7th level, as a full-round action the swashbuckler can spend 1 panache point to make an attack with a single light or one-handed piercing melee weapon that cripples part of a foe’s body. The swashbuckler chooses a part of the body to target. If the attack succeeds, in addition to the attack’s normal damage, the target suffers one of the following effects based on the part of the body targeted. If a creature doesn’t have one of the listed body locations, that body part cannot be targeted. Creatures that are immune to sneak attacks are also immune to targeted strikes. Items or abilities that protect a creature from critical hits also protect a creature from targeted strikes.",
                                                  "a28dc4a06df947f8b519fed5b4e72153",
-                                                 null, //TODO icon
+                                                 wrapper.Icon, //TODO icon
                                                  FeatureGroup.None,
                                                  Helpers.CreateAddFact(wrapper)
                                                  );
@@ -1166,13 +1177,14 @@ namespace Derring_Do
 
         static void createDizzyingDefence()
         {
+            var mirror_image = library.Get<BlueprintAbility>("3e4ab69ada402d145a5e0ad3ad4b8564");
             var fight_defensively_buff = library.Get<BlueprintBuff>("6ffd93355fb3bcf4592a5d976b1d32a9");
 
             dizzying_defence_deed = CreateFeature("DizzyingDefenceSwashbucklerFeature",
                                                   "Dizzying Defence",
                                                   "At 15th level, while wielding a light or one-handed piercing melee weapon in one hand, the swashbuckler can spend 1 panache point to take the fighting defensively action as a swift action instead of a standard action. When fighting defensively in this manner, the dodge bonus to AC gained from that action increases to +4, and the penalty to attack rolls is reduced to –2.",
                                                   "49b5a4448e924bd2bd58289facd6ad7b",
-                                                  null, //TODO icon
+                                                  mirror_image.Icon,
                                                   FeatureGroup.None
                                                   );
 
@@ -1257,11 +1269,13 @@ namespace Derring_Do
 
         static void createSwashbucklersEdge()
         {
+            var expeditious_retreat = library.Get<BlueprintAbility>("4f8181e7a7f1d904fbaea64220e83379");
+
             var swashbucklers_edge_buff = CreateBuff("SwashbucklersEdgeSwashbucklerBuff",
                                                      "Swashbuckler's Edge",
                                                      "At 15th level, while the swashbuckler has at least 1 panache point, she can take 10 on any Athletics or Mobility check, even while distracted or in immediate danger. She can use this ability in conjunction with the derring-do deed.",
                                                      "a2c643b0efad440aa3a38c48f9f59c0b",
-                                                     null, //TODO icon
+                                                     expeditious_retreat.Icon,
                                                      null,
                                                      Helpers.Create<ModifyD20>(m => { m.Replace = true; m.SpecificSkill = true; m.Rule = RuleType.SkillCheck; m.Skill = new StatType[] { StatType.SkillAthletics, StatType.SkillMobility }; m.Roll = 10; })
                                                      );
@@ -1294,11 +1308,13 @@ namespace Derring_Do
 
         static void createCheatDeath()
         {
+            var resurrection = library.Get<BlueprintAbility>("80a1a388ee938aa4e90d427ce9a7a3e9");
+
             var cheat_death_buff = CreateBuff("CheatDeathSwashbucklerBuff",
                                               "Cheat Death",
                                               "At 19th level, whenever the swashbuckler is reduced to 0 hit points or fewer, she can spend all of her remaining panache to instead be reduced to 1 hit point. She must have at least 1 panache point to spend. Effects that kill the swashbuckler outright without dealing hit point damage are not affected by this ability.",
                                               "5f28a8261ca1470c9b40eeceddff8c5c",
-                                              null, // TODO - icon
+                                              resurrection.Icon,
                                               null,
                                               Create<ReduceIncomingKillingBlow>()
                                               );
