@@ -59,6 +59,7 @@ using Kingmaker.UnitLogic.Mechanics.Properties;
 using Harmony12;
 using Kingmaker.UnitLogic.Class.Kineticist.Properties;
 using Kingmaker.UnitLogic.Buffs;
+using Kingmaker.Designers.EventConditionActionSystem.Events;
 
 namespace Derring_Do
 {
@@ -244,6 +245,7 @@ namespace Derring_Do
             createDizzyingDefence();
             createPerfectThrust();
             createSwashbucklersEdge();
+            createCheatDeath();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -271,7 +273,7 @@ namespace Derring_Do
                                                                        LevelEntry(16, fighter_feat),
                                                                        LevelEntry(17, swashbuckler_weapon_training),
                                                                        LevelEntry(18, charmed_life),
-                                                                       LevelEntry(19, nimble_unlock),
+                                                                       LevelEntry(19, nimble_unlock, cheat_death_deed),
                                                                        LevelEntry(20, fighter_feat, swashbuckler_weapon_mastery),
                                                                        };
             swashbuckler_progression.UIDeterminatorsGroup = new BlueprintFeatureBase[] { swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds };
@@ -767,42 +769,9 @@ namespace Derring_Do
                                          FeatureGroup.None
                                          );
             
-            /*
-            var mobility_toggle = library.Get<BlueprintActivatableAbility>("4be5757b85af47545a5789f1d03abda9");
             var mobility_buff = library.Get<BlueprintBuff>("9dc2afb96879cfd4bb7aed475ed51002");
-
-            var slow_buff = Helpers.CreateBuff("MobilitySlowBuff",
-                                               "BOY YOU SLOW",
-                                               "SLOOOOOOOOOOOOOOOOOOOOOW",
-                                               "9d4609a851234115af3f584109388a22",
-                                               null,
-                                               null,
-                                               Create<AddCondition>(a => a.Condition = UnitCondition.Slowed)
-                                               );
-            var apply_slow = Helpers.CreateApplyBuff(slow_buff, CreateContextDuration(), false, dispellable: false, permanent: true);
-            //slow_buff.SetBuffFlags(BuffFlags.HiddenInUi);
-
-            var aoo_buff = Helpers.CreateBuff("MobilityAOOBuff",
-                                               mobility_buff.Name,
-                                               mobility_buff.Description + "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                                               "aeef4f7a6c52481b97c7ed2c4507ee5a",
-                                               mobility_buff.Icon,
-                                               mobility_buff.FxOnStart,
-                                               Create<AddCondition>(a => a.Condition = UnitCondition.UseMobilityToNegateAttackOfOpportunity)
-                                               );
-
-            var conditional_has_panache = CallOfTheWild.Helpers.CreateConditional(Create<ContextConditionTargetHasEnoughResource>(c => { c.amount = 1; c.resource = panache_resource; }),
-                                                                                  null,
-                                                                                  Helpers.CreateApplyBuff(slow_buff, CreateContextDuration(), false, dispellable: false, permanent: true)
-                                                                                  );
-            var conditional_has_deed = CallOfTheWild.Helpers.CreateConditional(Common.createContextConditionCasterHasFact(swashbucklers_grace_deed),
-                                                                               conditional_has_panache,
-                                                                               apply_slow
-                                                                               );
-
-            mobility_toggle.Buff = aoo_buff;
-            mobility_toggle.AddComponent(CreateRunActions(conditional_has_deed));
-            */
+            mobility_buff.RemoveComponents<AddCondition>();
+            mobility_buff.AddComponent(Create<AddCondition>(a => a.Condition = UnitCondition.UseMobilityToNegateAttackOfOpportunity));
         }
 
         static void createSuperiorFeintDeed()
@@ -1272,7 +1241,7 @@ namespace Derring_Do
                                                      "a2c643b0efad440aa3a38c48f9f59c0b",
                                                      null, //TODO icon
                                                      null,
-                                                     Create<TakeTenOnAthleticsAndMobility>()
+                                                     Helpers.Create<ModifyD20>(m => { m.Replace = true; m.SpecificSkill = true; m.Rule = RuleType.SkillCheck; m.Skill = new StatType[] { StatType.SkillAthletics, StatType.SkillMobility }; m.Roll = 10; })
                                                      );
 
             var swashbucklers_edge_toggle_ability = CreateActivatableAbility("SwashbucklersEdgeSwashbucklerActivatableAbility",
@@ -1299,6 +1268,40 @@ namespace Derring_Do
                                                     FeatureGroup.None,
                                                     CallOfTheWild.Helpers.CreateAddFact(swashbucklers_edge_toggle_ability)
                                                     );
+        }
+
+        static void createCheatDeath()
+        {
+            var cheat_death_buff = CreateBuff("CheatDeathSwashbucklerBuff",
+                                              "Cheat Death",
+                                              "At 19th level, whenever the swashbuckler is reduced to 0 hit points or fewer, she can spend all of her remaining panache to instead be reduced to 1 hit point. She must have at least 1 panache point to spend. Effects that kill the swashbuckler outright without dealing hit point damage are not affected by this ability.",
+                                              "5f28a8261ca1470c9b40eeceddff8c5c",
+                                              null, // TODO - icon
+                                              null,
+                                              Create<ReduceIncomingKillingBlow>()
+                                              );
+
+            var cheat_death_ability = CreateActivatableAbility("CheatDeathSwashbucklerToggleAbility",
+                                                               cheat_death_buff.Name,
+                                                               cheat_death_buff.Description,
+                                                               "d8319eea70394d768bf44806fd41b600",
+                                                               cheat_death_buff.Icon,
+                                                               cheat_death_buff,
+                                                               AbilityActivationType.Immediately,
+                                                               UnitCommand.CommandType.Free,
+                                                               null,
+                                                               CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                               );
+            cheat_death_ability.DeactivateImmediately = false;
+
+            cheat_death_deed = CreateFeature("CheatDeathSwashbucklerFeature",
+                                             cheat_death_buff.Name,
+                                             cheat_death_buff.Description,
+                                             "be66318f75354d5cbed1eb3e60603ac6",
+                                             cheat_death_buff.Icon,
+                                             FeatureGroup.None,
+                                             CallOfTheWild.Helpers.CreateAddFact(cheat_death_ability)
+                                             );
         }
 
         static void createDummyConsumePanache()
@@ -2249,43 +2252,41 @@ namespace Derring_Do
             }
         }
 
-        [ComponentName("Take 10 on Athletics and Mobility")]
+        [ComponentName("Go to 1 HP when Incoming Damage Would Reduce to 0")]
         [AllowedOn(typeof(BlueprintBuff))]
-        public class TakeTenOnAthleticsAndMobility : RuleInitiatorLogicComponent<RuleSkillCheck>
+        public class ReduceIncomingKillingBlow : RuleTargetLogicComponent<RuleDealDamage>
         {
-            public override void OnEventAboutToTrigger(RuleSkillCheck evt)
+            private static BlueprintAbilityResource resource = panache_resource;
+
+            public override void OnEventAboutToTrigger(RuleDealDamage evt)
             {
-                if (!(evt.StatType == StatType.SkillAthletics || evt.StatType == StatType.SkillMobility))
+            }
+
+            public override void OnEventDidTrigger(RuleDealDamage evt)
+            {
+                if (evt.Target.Damage < 0)
+                {
+                    Main.logger.Log(evt.Target.Damage + " is less than zero.");
+                    return;
+                }
+
+                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < 1)
+                {
+                    Main.logger.Log("Not enough Panache.");
+                    return;
+                }
+
+                int max_need_reduce = 1 - evt.Target.HPLeft;
+                int reduce_damage = Math.Min(max_need_reduce, evt.Target.Damage);
+                if (reduce_damage <= 0)
                 {
                     return;
                 }
 
-                evt.Take10ForSuccess = true;
-            }
+                var consume_amount = evt.Target.Descriptor.Resources.GetResourceAmount(resource);
+                evt.Target.Descriptor.Resources.Spend(resource, consume_amount);
 
-            public override void OnEventDidTrigger(RuleSkillCheck evt)
-            {
-            }
-        }
-
-        [Harmony12.HarmonyPatch(typeof(UnitEntityData))]
-        [Harmony12.HarmonyPatch("CalculateSpeedModifier", Harmony12.MethodType.Normal)]
-        class Patch_UnitEntityData_CalculateSpeedModifier
-        {
-            private static BlueprintBuff mobility_buff = library.Get<BlueprintBuff>("9dc2afb96879cfd4bb7aed475ed51002");
-            private static BlueprintFeature deed = swashbucklers_grace_deed;
-
-            static public void Postfix(UnitEntityData __instance, ref float __result)
-            {
-                if (Game.Instance.CurrentlyLoadedArea.IsCapital)
-                {
-                    return;
-                }
-
-                if (__instance.Descriptor.HasFact(mobility_buff) && __instance.Descriptor.HasFact(deed))
-                {
-                    __result *= 2.0f; //TODO - decide action - currently negates Mobility debuff but not Slowed
-                }
+                evt.Target.Damage -= reduce_damage;
             }
         }
     }
