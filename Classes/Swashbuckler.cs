@@ -248,6 +248,7 @@ namespace Derring_Do
             createSwashbucklersEdge();
             createCheatDeath();
             createDeadlyStab();
+            createStunningStab();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -275,7 +276,7 @@ namespace Derring_Do
                                                                        LevelEntry(16, fighter_feat),
                                                                        LevelEntry(17, swashbuckler_weapon_training),
                                                                        LevelEntry(18, charmed_life),
-                                                                       LevelEntry(19, nimble_unlock, cheat_death_deed, deadly_stab_deed),
+                                                                       LevelEntry(19, nimble_unlock, cheat_death_deed, deadly_stab_deed, stunning_stab_deed),
                                                                        LevelEntry(20, fighter_feat, swashbuckler_weapon_mastery),
                                                                        };
             swashbuckler_progression.UIDeterminatorsGroup = new BlueprintFeatureBase[] { swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds };
@@ -582,16 +583,18 @@ namespace Derring_Do
 
         static void createOpportuneParryAndRiposte()
         {
+            var duelist_parry = library.Get<BlueprintActivatableAbility>("c0248f304998aa64da458e097c022d73");
+
             var opportune_parry_and_riposte_buff = CreateBuff("OpportuneParryAndRiposteSwashbucklerBuff",
                                                               "Opportune Parry and Riposte",
                                                               "At 1st level, when an opponent makes a melee attack against the swashbuckler, she can spend 1 panache point and expend a use of an attack of opportunity to attempt to parry that attack. The swashbuckler makes an attack roll as if she were making an attack of opportunity; for each size category the attacking creature is larger than the swashbuckler, the swashbuckler takes a –2 penalty on this roll. If her result is greater than the attacking creature’s result, the creature’s attack automatically misses. The swashbuckler must declare the use of this ability after the creature’s attack is announced, but before its attack roll is made. Upon performing a successful parry and if she has at least 1 panache point, the swashbuckler can as an immediate action make an attack against the creature whose attack she parried, provided that creature is within her reach. This deed’s cost cannot be reduced by any ability or effect that reduces the number of panache points a deed costs.",
                                                               "a48086ca55a7472284780720a79deb03",
-                                                              null, //TODO icon
+                                                              duelist_parry.Icon, //TODO icon
                                                               null, //TODO fx
                                                               Create<SwashbucklerParryAndRiposte>(s => s.AttackerCondition = null)
                                                               );
 
-            var apply_buff = Common.createContextActionApplyBuff(opportune_parry_and_riposte_buff, CreateContextDuration(1), dispellable: false);
+            var apply_buff = Common.createContextActionApplyBuff(opportune_parry_and_riposte_buff, CreateContextDuration(2), dispellable: false);
 
             var opportune_parry_and_riposte_ability = CreateAbility("OpportuneParryAndRiposteSwashbucklerAbility",
                                                                     opportune_parry_and_riposte_buff.Name,
@@ -1217,8 +1220,7 @@ namespace Derring_Do
                                                        Create<AbilityCasterHasAtLeastOnePanache>(),
                                                        Helpers.Create<AttackAnimation>(),
                                                        Helpers.CreateRunActions(Common.createContextActionOnContextCaster(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(1), dispellable: false)),
-                                                                                Common.createContextActionAttack(Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff))),
-                                                                                                                 Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff)))
+                                                                                Common.createContextActionAttack(action_on_miss: Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff)))
                                                                                                                  )
                                                                                 )
                                                        );
@@ -1338,6 +1340,45 @@ namespace Derring_Do
                                              FeatureGroup.None,
                                              Helpers.CreateAddFact(deadly_stab_ability)
                                              );
+        }
+
+        static void createStunningStab()
+        {
+            var stunned_buff = library.Get<BlueprintBuff>("09d39b38bb7c6014394b6daced9bacd3");
+            var effect_action = Helpers.CreateActionList(Common.createContextSavedApplyBuff(stunned_buff, Helpers.CreateContextDuration(Common.createSimpleContextValue(1))));
+            var action = Helpers.CreateActionList(Common.createContextActionSavingThrow(SavingThrowType.Fortitude, effect_action), Create<SpendPanache>(s => s.amount = 2));
+
+            var stunning_stab_buff = CreateBuff("StunningStabSwashbucklerBuff",
+                                                "Stunning Stab",
+                                                "At 19th level, when a swashbuckler hits a creature with a light or one-handed piercing melee weapon, she can spend 2 panache points to stun the creature for 1 round. The creature must succeed at a Fortitude saving throw (DC = 10 + 1/2 the swashbuckler’s level + the swashbuckler’s Dexterity modifier) or be stunned for 1 round. Creatures that are immune to critical hits are also immune to this effect.",
+                                                "0dd0384bdc5d46e8842569b0cf6810b8",
+                                                null, //TODO icon
+                                                null,
+                                                Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.Action = action; a.OnlyHit = true; a.DuelistWeapon = true; }),
+                                                Common.createContextCalculateAbilityParamsBasedOnClass(swashbuckler_class, StatType.Dexterity)
+                                                );
+
+            var stunning_stab_toggle = CreateActivatableAbility("StunningStabSwashbucklerAbility",
+                                                                stunning_stab_buff.Name,
+                                                                stunning_stab_buff.Description,
+                                                                "24df65a755d642bead754e48755cc481",
+                                                                stunning_stab_buff.Icon,
+                                                                stunning_stab_buff,
+                                                                AbilityActivationType.Immediately,
+                                                                CommandType.Free,
+                                                                null,
+                                                                CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
+                                                                Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
+                                                                );
+
+            stunning_stab_deed = CreateFeature("StunningStabSwashbucklerFeature",
+                                               stunning_stab_buff.Name,
+                                               stunning_stab_buff.Description,
+                                               "3b6f601b4e234ba396a2bbf9d5ced860",
+                                               stunning_stab_buff.Icon,
+                                               FeatureGroup.None,
+                                               Helpers.CreateAddFact(stunning_stab_toggle)
+                                               );
         }
 
         static void createDummyConsumePanache()
@@ -2281,11 +2322,20 @@ namespace Derring_Do
         {
             public override void OnEventAboutToTrigger(RuleDealDamage evt)
             {
+                foreach (BaseDamage baseDamage in evt.DamageBundle)
+                {
+                    baseDamage.IgnoreReduction = true;
+                }
                 evt.IgnoreDamageReduction = true;
             }
 
             public override void OnEventDidTrigger(RuleDealDamage evt)
             {
+                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
+                if (factContextOwner != null)
+                {
+                    factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
+                }
             }
         }
 
