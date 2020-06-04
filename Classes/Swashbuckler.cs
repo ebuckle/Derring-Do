@@ -60,6 +60,7 @@ using Harmony12;
 using Kingmaker.UnitLogic.Class.Kineticist.Properties;
 using Kingmaker.UnitLogic.Buffs;
 using Kingmaker.Designers.EventConditionActionSystem.Events;
+using TinyJson;
 
 namespace Derring_Do
 {
@@ -246,6 +247,7 @@ namespace Derring_Do
             createPerfectThrust();
             createSwashbucklersEdge();
             createCheatDeath();
+            createDeadlyStab();
 
             swashbuckler_progression = CreateProgression("SwashbucklerProgression",
                                                            swashbuckler_class.Name,
@@ -273,7 +275,7 @@ namespace Derring_Do
                                                                        LevelEntry(16, fighter_feat),
                                                                        LevelEntry(17, swashbuckler_weapon_training),
                                                                        LevelEntry(18, charmed_life),
-                                                                       LevelEntry(19, nimble_unlock, cheat_death_deed),
+                                                                       LevelEntry(19, nimble_unlock, cheat_death_deed, deadly_stab_deed),
                                                                        LevelEntry(20, fighter_feat, swashbuckler_weapon_mastery),
                                                                        };
             swashbuckler_progression.UIDeterminatorsGroup = new BlueprintFeatureBase[] { swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds };
@@ -1304,6 +1306,40 @@ namespace Derring_Do
                                              );
         }
 
+        static void createDeadlyStab()
+        {
+            var master_strike_toggle = library.Get<BlueprintActivatableAbility>("926bff1386d58824688363a3eeb98260");
+
+            var deadly_stab_buff = library.CopyAndAdd<BlueprintBuff>("eab680abdb0194343af169af393c2603", "DeadlyStabSwashbucklerBuff", "ec409f2a917441378d5878ed37593834"); //Master strike buff
+            deadly_stab_buff.SetName("Deadly Stab");
+            deadly_stab_buff.SetDescription("At 19th level, when the swashbuckler confirms a critical hit with a light or one-handed piercing melee weapon, in addition to the normal damage, she can spend 1 panache point to inflict a deadly stab. The target must succeed at a Fortitude saving throw or die. The DC of this save is 10 + 1/2 the swashbuckler’s level + the swashbuckler’s Dexterity modifier. This is a death attack. Performing this deed does not grant the swashbuckler a panache point.");
+            deadly_stab_buff.SetIcon(master_strike_toggle.Icon);
+            deadly_stab_buff.ReplaceComponent<ContextCalculateAbilityParamsBasedOnClass>(c => { c.StatType = StatType.Dexterity; c.CharacterClass = swashbuckler_class; });
+            var saving_throw_action = (deadly_stab_buff.GetComponent<AddInitiatorAttackWithWeaponTrigger>().Action.Actions[0] as Conditional).IfFalse.Actions[0];
+            deadly_stab_buff.ReplaceComponent<AddInitiatorAttackWithWeaponTrigger>(a => { a.CriticalHit = true; a.OnlySneakAttack = false; a.DuelistWeapon = true; a.Action = Helpers.CreateActionList(saving_throw_action, Create<SpendPanache>(s => s.amount = 1)); });
+
+            var deadly_stab_ability = CreateActivatableAbility("DeadlyStabSwashbucklerAbility",
+                                                               deadly_stab_buff.Name,
+                                                               deadly_stab_buff.Description,
+                                                               "cda47cdaf51a49a896e9096564321a45",
+                                                               deadly_stab_buff.Icon,
+                                                               deadly_stab_buff,
+                                                               AbilityActivationType.Immediately,
+                                                               CommandType.Free,
+                                                               null,
+                                                               CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                               );
+
+            deadly_stab_deed = CreateFeature("DeadlyStabSwashbucklerFeature",
+                                             deadly_stab_buff.Name,
+                                             deadly_stab_buff.Description,
+                                             "2455c089731f423c96c671d459e70e5c",
+                                             deadly_stab_buff.Icon,
+                                             FeatureGroup.None,
+                                             Helpers.CreateAddFact(deadly_stab_ability)
+                                             );
+        }
+
         static void createDummyConsumePanache()
         {
             var CONSUME_PANACHE_DUMMY_ABILITY = CreateAbility("DUMMYCONSUMEPANACHEABILITY",
@@ -1347,12 +1383,14 @@ namespace Derring_Do
         //COMPONENTS AND HELPERS
         //TODO - move components to Components.cs
         // TODO - DERVISH DANCE ETC EDGE CASES
-        static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon)
+        static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon, UnitDescriptor wielder)
         {
-            if (weapon.IsMelee && (weapon.DamageType.Physical.Form == PhysicalDamageForm.Piercing && (weapon.Type.IsLight || !weapon.Type.IsTwoHanded)))
+            if (weapon.Category.HasSubCategory(WeaponSubCategory.Light) || weapon.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (wielder.State.Features.DuelingMastery && weapon.Category == WeaponCategory.DuelingSword) || wielder.Ensure<DamageGracePart>().HasEntry(weapon.Category))
             {
                 return true;
             }
+
+
             return false;
         }
 
@@ -1426,7 +1464,7 @@ namespace Derring_Do
         {
             public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
             {
-                if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
                 {
                     evt.DoubleCriticalEdge = true;
                 }
@@ -1443,7 +1481,7 @@ namespace Derring_Do
         {
             public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
             {
-                if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
                 {
                     evt.AdditionalCriticalMultiplier = 1;
                 }
@@ -1460,7 +1498,7 @@ namespace Derring_Do
         {
             public override void OnEventAboutToTrigger(RuleAttackRoll evt)
             {
-                if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
                 {
                     evt.AutoCriticalConfirmation = true;
                 }
@@ -1484,7 +1522,7 @@ namespace Derring_Do
                     return;
                 }
 
-                if (!isLightOrOneHandedPiercingWeapon(weapon.Blueprint))
+                if (!isLightOrOneHandedPiercingWeapon(weapon.Blueprint, __instance.Owner.Unit.Descriptor))
                 {
                     return;
                 }
@@ -1722,7 +1760,7 @@ namespace Derring_Do
         {
             public bool CorrectCaster(UnitEntityData caster)
             {
-                return (isLightOrOneHandedPiercingWeapon(caster.Body.PrimaryHand.Weapon.Blueprint) || isLightOrOneHandedPiercingWeapon(caster.Body.SecondaryHand.Weapon.Blueprint));
+                return (isLightOrOneHandedPiercingWeapon(caster.Body.PrimaryHand.Weapon.Blueprint, caster.Descriptor) || isLightOrOneHandedPiercingWeapon(caster.Body.SecondaryHand.Weapon.Blueprint, caster.Descriptor));
             }
             public string GetReason()
             {
@@ -1916,7 +1954,7 @@ namespace Derring_Do
 
                 Main.logger.Log("Cooldown was " + evt.Initiator.CombatState.Cooldown.SwiftAction);
 
-                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
                 {
                     return;
                 }
@@ -1952,7 +1990,7 @@ namespace Derring_Do
                 }
 
                 ItemEntityWeapon weapon = evt.Weapon;
-                bool flag = isLightOrOneHandedPiercingWeapon(weapon.Blueprint);
+                bool flag = isLightOrOneHandedPiercingWeapon(weapon.Blueprint, evt.Initiator.Descriptor);
                 bool flag2 = base.Owner.Body.SecondaryHand.HasWeapon && base.Owner.Body.SecondaryHand.MaybeWeapon != base.Owner.Body.EmptyHandWeapon;
                 bool flag3 = base.Owner.Body.SecondaryHand.HasShield;
                 if (flag3)
@@ -2160,11 +2198,10 @@ namespace Derring_Do
             {
                 if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
                 {
-                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
                     return;
                 }
 
-                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint))
+                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
                 {
                     return;
                 }
@@ -2209,11 +2246,11 @@ namespace Derring_Do
 
                 ItemEntityWeapon maybeWeapon = evt.Target.Body.PrimaryHand.MaybeWeapon;
                 ItemEntityWeapon maybeWeapon2 = evt.Target.Body.SecondaryHand.MaybeWeapon;
-                if ((maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint))
+                if ((maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
                 {
                     evt.AutoFailure = true;
                 }
-                else if ((maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint))
+                else if ((maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
                 {
                     evt.AutoFailure = true;
                 }
