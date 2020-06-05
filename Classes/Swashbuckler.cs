@@ -1,66 +1,60 @@
-﻿using System;
+﻿using CallOfTheWild;
+using CallOfTheWild.BleedMechanics;
+using CallOfTheWild.NewMechanics;
+using CallOfTheWild.ResourceMechanics;
+using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Selection;
+using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.Blueprints.Facts;
+using Kingmaker.Blueprints.Items.Armors;
+using Kingmaker.Blueprints.Items.Ecnchantments;
+using Kingmaker.Blueprints.Items.Weapons;
+using Kingmaker.Blueprints.Root;
+using Kingmaker.Controllers;
+using Kingmaker.Controllers.Combat;
+using Kingmaker.Designers.EventConditionActionSystem.Actions;
+using Kingmaker.Designers.Mechanics.Buffs;
 using Kingmaker.Designers.Mechanics.Facts;
+using Kingmaker.Designers.Mechanics.Recommendations;
+using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
 using Kingmaker.Enums.Damage;
+using Kingmaker.Items;
+using Kingmaker.Items.Slots;
+using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules;
+using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
+using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
+using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.UnitLogic.Abilities.Components.Base;
+using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
-using Kingmaker.Blueprints.Items.Weapons;
+using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
+using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.UnitLogic.Class.Kineticist.Properties;
+using Kingmaker.UnitLogic.Commands;
 using Kingmaker.UnitLogic.Commands.Base;
 using Kingmaker.UnitLogic.FactLogic;
 using Kingmaker.UnitLogic.Mechanics;
+using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
+using Kingmaker.UnitLogic.Mechanics.ContextData;
 using Kingmaker.UnitLogic.Parts;
 using Kingmaker.Utility;
-using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
-using Kingmaker.UnitLogic.Abilities.Components.Base;
-using Kingmaker.Blueprints.Items.Armors;
-using Kingmaker.Designers.Mechanics.Buffs;
-using Kingmaker.PubSubSystem;
-using Newtonsoft.Json;
-using CallOfTheWild;
-using static CallOfTheWild.Helpers;
-using CallOfTheWild.ResourceMechanics;
-using CallOfTheWild.NewMechanics;
-using Kingmaker.Items;
-using Kingmaker.Items.Slots;
-using System.Linq;
-using Kingmaker.UnitLogic.Buffs.Blueprints;
-using Kingmaker.UnitLogic.Mechanics.Actions;
-using Kingmaker.UnitLogic.Abilities.Components;
-using Kingmaker.ElementsSystem;
-using Kingmaker.Controllers.Combat;
-using Kingmaker;
-using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
-using Kingmaker.Designers.EventConditionActionSystem.Actions;
-using Kingmaker.Blueprints.Root;
-using Kingmaker.Controllers;
-using System.Collections.Generic;
-using Kingmaker.UnitLogic.Abilities;
-using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
-using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
-using Kingmaker.UnitLogic.Commands;
 using Kingmaker.View.Animation;
-using CallOfTheWild.BleedMechanics;
-using Kingmaker.Blueprints.Classes.Spells;
-using Kingmaker.UnitLogic.Buffs.Components;
-using Kingmaker.Controllers.Units;
-using Kingmaker.RuleSystem.Rules.Damage;
-using Kingmaker.UnitLogic.Mechanics.Conditions;
-using Kingmaker.UnitLogic.Mechanics.Properties;
-using Harmony12;
-using Kingmaker.UnitLogic.Class.Kineticist.Properties;
-using Kingmaker.UnitLogic.Buffs;
-using Kingmaker.Designers.EventConditionActionSystem.Events;
-using TinyJson;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using static CallOfTheWild.Helpers;
+using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
 namespace Derring_Do
 {
@@ -93,43 +87,31 @@ namespace Derring_Do
         //TODO - TWEAK CHA SWAP TO JUST BE FOR COMBAT FEATS
         static public BlueprintFeature swashbuckler_finesse;
 
-        //TODO
         static public BlueprintFeature charmed_life;
 
-        //DONE - WORKING
         static public BlueprintFeature nimble_unlock;
 
-        //DONE - WORKING
         static public BlueprintFeature swashbuckler_weapon_training;
 
-        //DONE - WORKING
         static public BlueprintFeature swashbuckler_weapon_mastery;
 
-        // TODO: Deeds
         static public BlueprintFeature CONSUME_PANACHE_DUMMY;
 
-        //TODO: Test
         static public BlueprintFeature derring_do_deed;
 
-        //TODO: Testing
         static public BlueprintFeature dodging_panache_deed;
 
-        //TODO: Testing - 2nd attack roll?
         static public BlueprintFeature opportune_parry_and_riposte_deed;
 
-        //TODO: Testing - refine animation
+        //TODO: Not working - figure out passive
         static public BlueprintFeature kip_up_deed;
 
-        //DONE
         static public BlueprintFeature menacing_swordplay_deed;
 
-        //DONE working
         static public BlueprintFeature precise_strike_deed;
 
-        //DONE WORKING
         static public BlueprintFeature swashbuckler_initiative_deed;
 
-        //TODO - Figure out
         static public BlueprintFeature swashbucklers_grace_deed;
 
         static public BlueprintFeature superior_feint_deed;
@@ -138,6 +120,7 @@ namespace Derring_Do
 
         static public BlueprintFeature bleeding_wound_deed;
 
+        //TODO figure out passive
         static public BlueprintFeature evasive_deed;
 
         static public BlueprintFeature subtle_blade_deed;
@@ -211,7 +194,7 @@ namespace Derring_Do
         {
             createSwashbucklerProficiencies();
             createNimble();
-            createPanachePoolAndDeeds();
+            createPanache();
             createDeeds();
             createSwashbucklerFinesse();
             createCharmedLife();
@@ -289,6 +272,7 @@ namespace Derring_Do
 
         static void createSwashbucklerProficiencies()
         {
+            var fighter = library.Get<BlueprintFeature>("a23591cc77086494ba20880f87e73970");
             swashbuckler_proficiencies = library.CopyAndAdd<BlueprintFeature>("a23591cc77086494ba20880f87e73970", "SwashbucklerProficiencies", "c8935bfe531e48699201aaa47ff8a556"); //from fighter
             swashbuckler_proficiencies.ReplaceComponent<AddFacts>(c => c.Facts = c.Facts.RemoveFromArray(library.Get<BlueprintFeature>("46f4fb320f35704488ba3d513397789d"))); //medium armor proficiency
             swashbuckler_proficiencies.ReplaceComponent<AddFacts>(c => c.Facts = c.Facts.RemoveFromArray(library.Get<BlueprintFeature>("1b0f68188dcc435429fb87a022239681"))); //heavy armor proficiency
@@ -298,10 +282,11 @@ namespace Derring_Do
             swashbuckler_proficiencies.SetNameDescription("Swashbuckler Proficiencies",
                                                           "Swashbucklers are proficient with simple and martial weapons, as well as light armor and bucklers."
                                                           );
+            swashbuckler_proficiencies.SetIcon(fighter.Icon);
         }
 
         //TODO rename
-        static void createPanachePoolAndDeeds()
+        static void createPanache()
         {
             panache_resource = CreateAbilityResource("PanacheResource", "Panache", "", "2087ab6ed0df4c8480379105bc0962a7", null);
             panache_resource.AddComponent(Create<MinResourceAmount>(m => m.value = 1));
@@ -311,41 +296,16 @@ namespace Derring_Do
 
             panache = CreateFeature("PanacheFeature",
                                     "Panache",
-                                    "More than just a lightly armored warrior, a swashbuckler is a daring combatant. She fights with panache: a fluctuating measure of a swashbuckler’s ability to perform amazing actions in combat. At the start of each day, a swashbuckler gains a number of panache points equal to her Charisma modifier (minimum 1). Her panache goes up or down throughout the day, but usually cannot go higher than her Charisma modifier (minimum 1), though feats and magic items can affect this maximum. A swashbuckler spends panache to accomplish deeds, and regains panache in the following ways."
-                                    + "Critical Hit with a Light or One-Handed Piercing Melee Weapon: Each time the swashbuckler confirms a critical hit with a light or one-handed piercing melee weapon, she regains 1 panache point. Confirming a critical hit on a helpless or unaware creature or a creature that has fewer Hit Dice than half the swashbuckler’s character level doesn’t restore panache."
+                                    "More than just a lightly armored warrior, a swashbuckler is a daring combatant. She fights with panache: a fluctuating measure of a swashbuckler’s ability to perform amazing actions in combat. At the start of each day, a swashbuckler gains a number of panache points equal to her Charisma modifier (minimum 1). Her panache goes up or down throughout the day, but usually cannot go higher than her Charisma modifier (minimum 1), though feats and magic items can affect this maximum. A swashbuckler spends panache to accomplish deeds, and regains panache in the following ways.\n"
+                                    + "Critical Hit with a Light or One-Handed Piercing Melee Weapon: Each time the swashbuckler confirms a critical hit with a light or one-handed piercing melee weapon, she regains 1 panache point. Confirming a critical hit on a helpless or unaware creature or a creature that has fewer Hit Dice than half the swashbuckler’s character level doesn’t restore panache.\n"
                                     + "Killing Blow with a Light or One-Handed Piercing Melee Weapon: When the swashbuckler reduces a creature to 0 or fewer hit points with a light or one - handed piercing melee weapon attack while in combat, she regains 1 panache point. Destroying an unattended object, reducing a helpless or unaware creature to 0 or fewer hit points, or reducing a creature that has fewer Hit Dice than half the swashbuckler’s character level to 0 or fewer hit points doesn’t restore any panache.",
                                     "2d4095f5959e458b918515b8a21e3a54",
                                     null, //TODO: icon
                                     FeatureGroup.None,
-                                    panache_resource.CreateAddAbilityResource()
-                                    //TODO - cleanup to use boolean method instead
-                                    /*
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Dagger),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.PunchingDagger),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.LightPick),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Sai),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Shortspear),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Trident),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.HeavyPick),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Rapier),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Starknife),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Estoc),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), critical_hit: true, weapon_category: WeaponCategory.Tongi),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Dagger),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.PunchingDagger),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.LightPick),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Sai),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Shortspear),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Trident),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.HeavyPick),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Rapier),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Starknife),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Estoc),
-                                    Common.createAddInitiatorAttackWithWeaponTriggerWithCategory(CreateActionList(regainPanache), reduce_hp_to_zero: true, weapon_category: WeaponCategory.Tongi)
-                                    */
+                                    panache_resource.CreateAddAbilityResource(),
+                                    Create<RestorePanacheAttackRollTrigger>(a => { a.CriticalHit = true; }),
+                                    Create<RestorePanacheAttackRollTrigger>(a => { a.ReduceHPToZero = true;})
                                     );
-
-            //TODO: Deeds
         }
 
         static void createDeeds()
@@ -362,6 +322,7 @@ namespace Derring_Do
         static void createSwashbucklerFinesse()
         {
             var weapon_finesse = library.Get<BlueprintFeature>("90e54424d682d104ab36436bd527af09");
+            var improved_critical = library.Get<BlueprintParametrizedFeature>("f4201c85a991369408740c6888362e20");
 
             swashbuckler_finesse = CreateFeature("SwashbucklerFinesseSwashbucklerFeature",
                                                  "Swashbuckler Finesse",
@@ -369,13 +330,9 @@ namespace Derring_Do
                                                  "969cac9599204955b2b86996c7834ae1",
                                                  weapon_finesse.Icon,
                                                  FeatureGroup.None,
-                                                 Create<AttackStatReplacementForWeaponCategory>(c =>
-                                                                                                {
-                                                                                                    c.categories = new WeaponCategory[] { WeaponCategory.Dagger, WeaponCategory.PunchingDagger, WeaponCategory.LightPick, WeaponCategory.Sai, WeaponCategory.Shortspear, WeaponCategory.Trident, WeaponCategory.HeavyPick, WeaponCategory.Rapier, WeaponCategory.Starknife, WeaponCategory.Estoc, WeaponCategory.Tongi };
-                                                                                                    c.ReplacementStat = StatType.Dexterity;
-                                                                                                }
-                                                                                                ),
-                                                 Create<ReplaceStatForPrerequisites>(r => { r.OldStat = StatType.Intelligence; r.NewStat = StatType.Charisma; r.Policy = ReplaceStatForPrerequisites.StatReplacementPolicy.NewStat; })
+                                                 Create<AttackStatReplacementForSwashbucklerWeapon>(),
+                                                 Create<ReplaceStatForPrerequisites>(r => { r.OldStat = StatType.Intelligence; r.NewStat = StatType.Charisma; r.Policy = ReplaceStatForPrerequisites.StatReplacementPolicy.NewStat; }),
+                                                 Create<RecommendationNoFeatFromGroup>(r => r.Features = new BlueprintUnitFact[] { weapon_finesse, improved_critical })
                                                  );
             library.Get<BlueprintFeature>("90e54424d682d104ab36436bd527af09").AddComponent(Create<FeatureReplacement>(f => f.replacement_feature = swashbuckler_finesse)); // weapon finesse
         }
@@ -561,7 +518,7 @@ namespace Derring_Do
                                                   "At 1st level, when an opponent attempts a melee attack against the swashbuckler, the swashbuckler can as an immediate action spend 1 panache point to gain a dodge bonus to AC equal to her Charisma modifier (minimum 0) against the triggering attack. The swashbuckler can only perform this deed while wearing light or no armor.",
                                                   "c466576d4a784d3f94300e08afa57784",
                                                   dextrous_duelist.Icon,
-                                                  null, //TODO - animation
+                                                  null,
                                                   Create<AddACBonusOnAttackAndConsumePanache>()
                                                   );
             var apply_buff = Common.createContextActionApplyBuff(dodging_panache_buff, CreateContextDuration(1), dispellable: false);
@@ -602,7 +559,7 @@ namespace Derring_Do
                                                               "At 1st level, when an opponent makes a melee attack against the swashbuckler, she can spend 1 panache point and expend a use of an attack of opportunity to attempt to parry that attack. The swashbuckler makes an attack roll as if she were making an attack of opportunity; for each size category the attacking creature is larger than the swashbuckler, the swashbuckler takes a –2 penalty on this roll. If her result is greater than the attacking creature’s result, the creature’s attack automatically misses. The swashbuckler must declare the use of this ability after the creature’s attack is announced, but before its attack roll is made. Upon performing a successful parry and if she has at least 1 panache point, the swashbuckler can as an immediate action make an attack against the creature whose attack she parried, provided that creature is within her reach. This deed’s cost cannot be reduced by any ability or effect that reduces the number of panache points a deed costs.",
                                                               "a48086ca55a7472284780720a79deb03",
                                                               duelist_parry.Icon,
-                                                              null, //TODO fx
+                                                              null,
                                                               Create<SwashbucklerParryAndRiposte>(s => s.AttackerCondition = null)
                                                               );
 
@@ -680,7 +637,7 @@ namespace Derring_Do
                                         kip_up_buff.Name,
                                         kip_up_buff.Description,
                                         "af26a97f3bf9470aa08bbe78967184f1",
-                                        kip_up_buff.Icon, //TODO icon
+                                        kip_up_buff.Icon,
                                         FeatureGroup.None,
                                         CallOfTheWild.Helpers.CreateAddFact(kip_up_toggle_ability),
                                         CallOfTheWild.Helpers.CreateAddFact(kip_up_swift_activatable_ability)
@@ -776,7 +733,7 @@ namespace Derring_Do
                                                          "Swashbuckler Initiative",
                                                          "At 3rd level, while the swashbuckler has at least 1 panache point, she gains a +2 bonus on initiative checks.",
                                                          "7afa78acfbe142ff99125c2a2e253362",
-                                                         detect_magic.Icon, //TODO icon
+                                                         detect_magic.Icon,
                                                          FeatureGroup.None
                                                          );
 
@@ -809,7 +766,7 @@ namespace Derring_Do
                                                    "Target is is denied its Dexterity bonus to AC.",
                                                    "9bfd81378c0c4a798115fda7f36e43f2",
                                                    confounding_duelist.Icon,
-                                                   null, //TODO fx
+                                                   null,
                                                    Common.createAddCondition(UnitCondition.LoseDexterityToAC)
                                                    );
 
@@ -819,7 +776,7 @@ namespace Derring_Do
                                                        superior_feint_debuff.Name,
                                                        "At 7th level, a swashbuckler with at least 1 panache point can, as a standard action, purposefully miss a creature she could make a melee attack against with a wielded light or one-handed piercing weapon. When she does, the creature is denied its Dexterity bonus to AC until the start of the swashbuckler’s next turn.",
                                                        "ed17ecaa24934fb68c7182d05ded73ad",
-                                                       superior_feint_debuff.Icon, //TODO icon
+                                                       superior_feint_debuff.Icon,
                                                        AbilityType.Extraordinary,
                                                        CommandType.Standard,
                                                        AbilityRange.Weapon,
@@ -882,7 +839,7 @@ namespace Derring_Do
                                                              base_name + " - Head",
                                                              "The target is confused for 1 round. This is a mind-affecting effect.",
                                                              "075780d93e7f4d35beca760afe16764b",
-                                                             confusion_buff.Icon, //TODO icon
+                                                             confusion_buff.Icon,
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -902,7 +859,7 @@ namespace Derring_Do
                                                              base_name + " - Legs",
                                                              "The target is knocked prone. Creatures that are immune to trip attacks are immune to this effect.",
                                                              "00be497d03e34c26a1954f76cd3c6a48",
-                                                             grease.Icon, //TODO icon
+                                                             grease.Icon,
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -922,7 +879,7 @@ namespace Derring_Do
                                                              base_name + " - Torso",
                                                              "The target is staggered for 1 round.",
                                                              "a5206e32a38a4cb69f1e414abe5cb491",
-                                                             staggered_buff.Icon, //TODO icon
+                                                             staggered_buff.Icon,
                                                              AbilityType.Extraordinary,
                                                              CommandType.Standard,
                                                              AbilityRange.Weapon,
@@ -947,7 +904,7 @@ namespace Derring_Do
                                                  base_name,
                                                  "At 7th level, as a full-round action the swashbuckler can spend 1 panache point to make an attack with a single light or one-handed piercing melee weapon that cripples part of a foe’s body. The swashbuckler chooses a part of the body to target. If the attack succeeds, in addition to the attack’s normal damage, the target suffers one of the following effects based on the part of the body targeted. If a creature doesn’t have one of the listed body locations, that body part cannot be targeted. Creatures that are immune to sneak attacks are also immune to targeted strikes. Items or abilities that protect a creature from critical hits also protect a creature from targeted strikes.",
                                                  "a28dc4a06df947f8b519fed5b4e72153",
-                                                 wrapper.Icon, //TODO icon
+                                                 wrapper.Icon,
                                                  FeatureGroup.None,
                                                  Helpers.CreateAddFact(wrapper)
                                                  );
@@ -959,7 +916,8 @@ namespace Derring_Do
             var icon = NewSpells.deadly_juggernaut.Icon;
             var spend_one_panache = Create<SpendPanache>(s => s.amount = 1);
             var spend_two_panache = Create<SpendPanache>(s => s.amount = 2);
-            int bleeding_wound_group = 110103; //Quick and dirty
+
+            var bleeding_wound_group = (ActivatableAbilityGroup) EnumUtils.GetMaxValue<ActivatableAbilityGroup>() + EnumUtils.GetMaxValue<ActivatableAbilityGroupExtension>() + 1;
 
             // Basic Bleed
             var bleeding_buff = Helpers.CreateBuff("BleedingWoundBleedSwashbucklerBuff",
@@ -994,7 +952,7 @@ namespace Derring_Do
                                                                          null,
                                                                          CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
                                                                          );
-            bleeding_wound_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_toggle.Group = bleeding_wound_group;
             bleeding_wound_toggle.DeactivateImmediately = true;
 
             //Strength Bleed
@@ -1031,7 +989,7 @@ namespace Derring_Do
                                                                                   CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
                                                                                   Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                                   );
-            bleeding_wound_strength_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_strength_toggle.Group = bleeding_wound_group;
             bleeding_wound_strength_toggle.DeactivateImmediately = true;
 
             //Dexterity Bleed
@@ -1068,7 +1026,7 @@ namespace Derring_Do
                                                                                    CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
                                                                                    Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                                    );
-            bleeding_wound_dexterity_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_dexterity_toggle.Group = bleeding_wound_group;
             bleeding_wound_dexterity_toggle.DeactivateImmediately = true;
 
             //Constitution Bleed
@@ -1105,7 +1063,7 @@ namespace Derring_Do
                                                                                       CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
                                                                                       Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                                       );
-            bleeding_wound_constitution_toggle.Group = (ActivatableAbilityGroup)bleeding_wound_group;
+            bleeding_wound_constitution_toggle.Group = bleeding_wound_group;
             bleeding_wound_constitution_toggle.DeactivateImmediately = true;
 
             bleeding_wound_deed = CreateFeature("BleedingWoundSwashbucklerFeature",
@@ -1457,7 +1415,6 @@ namespace Derring_Do
 
         //COMPONENTS AND HELPERS
         //TODO - move components to Components.cs
-        // TODO - DERVISH DANCE ETC EDGE CASES
         static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon, UnitDescriptor wielder)
         {
             if (weapon.Category.HasSubCategory(WeaponSubCategory.Light) || weapon.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (wielder.State.Features.DuelingMastery && weapon.Category == WeaponCategory.DuelingSword) || wielder.Ensure<DamageGracePart>().HasEntry(weapon.Category))
@@ -2407,6 +2364,121 @@ namespace Derring_Do
                 evt.Target.Descriptor.Resources.Spend(resource, consume_amount);
 
                 evt.Target.Damage -= reduce_damage;
+            }
+        }
+
+        [ComponentName("Restore Panache on Kill and Crit")]
+        public class RestorePanacheAttackRollTrigger : GameLogicComponent, IInitiatorRulebookHandler<RuleAttackWithWeapon>, IInitiatorRulebookHandler<RuleAttackWithWeaponResolve>, IRulebookHandler<RuleAttackWithWeapon>, IInitiatorRulebookSubscriber, IRulebookHandler<RuleAttackWithWeaponResolve>
+        {
+            public void OnEventAboutToTrigger(RuleAttackWithWeapon evt)
+            {
+            }
+
+            public void OnEventDidTrigger(RuleAttackWithWeapon evt)
+            {
+                if (!this.WaitForAttackResolve)
+                {
+                    this.TryRunActions(evt);
+                }
+            }
+
+            public void OnEventAboutToTrigger(RuleAttackWithWeaponResolve evt)
+            {
+            }
+
+            public void OnEventDidTrigger(RuleAttackWithWeaponResolve evt)
+            {
+                if (this.WaitForAttackResolve)
+                {
+                    this.TryRunActions(evt.AttackWithWeapon);
+                }
+            }
+
+            private void TryRunActions(RuleAttackWithWeapon rule)
+            {
+                if (this.CheckCondition(rule) && this.CheckValidTarget(rule))
+                {
+                    using (new ContextAttackData(rule.AttackRoll, null))
+                    {
+                        IFactContextOwner factContextOwner2 = base.Fact as IFactContextOwner;
+                        if (factContextOwner2 != null)
+                        {
+                            factContextOwner2.RunActionInContext(this.Action, rule.Initiator);
+                        }
+                    }
+                }
+            }
+
+            private bool CheckCondition(RuleAttackWithWeapon evt)
+            {
+                ItemEnchantment itemEnchantment = base.Fact as ItemEnchantment;
+                ItemEntity itemEntity = (itemEnchantment != null) ? itemEnchantment.Owner : null;
+                if (itemEntity != null && itemEntity != evt.Weapon)
+                {
+                    return false;
+                }
+                if (this.CriticalHit && (!evt.AttackRoll.IsCriticalConfirmed || evt.AttackRoll.FortificationNegatesCriticalHit))
+                {
+                    return false;
+                }
+                if (this.ReduceHPToZero)
+                {
+                    return evt.MeleeDamage != null && !evt.MeleeDamage.IsFake && evt.Target.HPLeft <= 0 && evt.Target.HPLeft + evt.MeleeDamage.Damage > 0;
+                }
+                bool flag = evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.Light) || evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (evt.Initiator.Descriptor.State.Features.DuelingMastery && evt.Weapon.Blueprint.Category == WeaponCategory.DuelingSword) || evt.Initiator.Descriptor.Ensure<DamageGracePart>().HasEntry(evt.Weapon.Blueprint.Category);
+                return !this.DuelistWeapon || flag;
+            }
+
+            private bool CheckValidTarget(RuleAttackWithWeapon evt)
+            {
+                if (evt.Target.Descriptor.Progression.CharacterLevel < (evt.Initiator.Descriptor.Progression.CharacterLevel / 2))
+                {
+                    return false;
+                }
+                if (evt.Target.Descriptor.State.IsHelpless || evt.Target.Descriptor.State.IsUnconscious)
+                {
+                    return false;
+                }
+                if (CriticalHit && evt.Initiator.Descriptor.HasFact(deadly_stab_buff))
+                {
+                    return false;
+                }
+                return true;
+            }
+
+            private BlueprintBuff deadly_stab_buff = library.Get<BlueprintBuff>("ec409f2a917441378d5878ed37593834");
+            
+            public bool WaitForAttackResolve;
+
+            public bool CriticalHit;
+
+            public bool ReduceHPToZero;
+
+            private bool DuelistWeapon = true;
+
+            private ActionList Action = CreateActionList(restore_panache);
+        }
+
+        [ComponentName("Replace attack stat for swashbuckler weapon")]
+        [AllowedOn(typeof(BlueprintUnitFact))]
+        public class AttackStatReplacementForSwashbucklerWeapon : RuleInitiatorLogicComponent<RuleCalculateAttackBonusWithoutTarget>
+        {
+            private StatType ReplacementStat = StatType.Dexterity;
+
+            public override void OnEventAboutToTrigger(RuleCalculateAttackBonusWithoutTarget evt)
+            {
+                ModifiableValueAttributeStat stat1 = this.Owner.Stats.GetStat(evt.AttackBonusStat) as ModifiableValueAttributeStat;
+                ModifiableValueAttributeStat stat2 = this.Owner.Stats.GetStat(this.ReplacementStat) as ModifiableValueAttributeStat;
+                bool flag = stat2 != null && stat1 != null && stat2.Bonus >= stat1.Bonus;
+
+                if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+                {
+                    evt.AttackBonusStat = this.ReplacementStat;
+                }
+            }
+
+            public override void OnEventDidTrigger(RuleCalculateAttackBonusWithoutTarget evt)
+            {
             }
         }
     }
