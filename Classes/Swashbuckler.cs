@@ -53,6 +53,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using static CallOfTheWild.Helpers;
 using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
@@ -1081,43 +1082,16 @@ namespace Derring_Do
 
         static void createEvasiveDeed()
         {
-            var evasion = library.Get<BlueprintFeature>("576933720c440aa4d8d42b0c54b77e80");
-            var uncanny_dodge = library.Get<BlueprintFeature>("3c08d842e802c3e4eb19d15496145709");
             var improved_uncanny_dodge = library.Get<BlueprintFeature>("485a18c05792521459c7d06c63128c79");
 
-            var evasive_buff = CreateBuff("EvasiveSwashbucklerBuff",
-                                          "Evasive",
-                                          "At 11th level, while a swashbuckler has at least 1 panache point, she gains the benefits of the evasion, uncanny dodge, and improved uncanny dodge rogue class features. She uses her swashbuckler level as her rogue level for improved uncanny dodge.",
-                                          "689349bd582c4a13bbf3f9eee76bd038",
-                                          improved_uncanny_dodge.Icon,
-                                          null,
-                                          CreateAddFacts(new BlueprintUnitFact[] { evasion, uncanny_dodge, improved_uncanny_dodge })
-                                          );
-
-            var evasive_hidden_toggle = CreateActivatableAbility("EvasiveHiddenSwashbucklerToggleAbility",
-                                                                 evasive_buff.Name,
-                                                                 evasive_buff.Description,
-                                                                 "d73a856ad4c549698b863ede6d29f5a2",
-                                                                 evasive_buff.Icon,
-                                                                 evasive_buff,
-                                                                 AbilityActivationType.Immediately,
-                                                                 CommandType.Free,
-                                                                 null,
-                                                                 CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
-                                                                 );
-            evasive_hidden_toggle.IsOnByDefault = true;
-            evasive_hidden_toggle.DeactivateIfOwnerDisabled = false;
-            evasive_hidden_toggle.DeactivateIfCombatEnded = false;
-            evasive_hidden_toggle.DeactivateIfOwnerUnconscious = false;
-            evasive_hidden_toggle.DeactivateImmediately = false;
-
             evasive_deed = CreateFeature("EvasiveSwashbucklerFeature",
-                                         evasive_buff.Name,
-                                         evasive_buff.Description,
+                                         "Evasive",
+                                         "At 11th level, while a swashbuckler has at least 1 panache point, she gains the benefits of the evasion, uncanny dodge, and improved uncanny dodge rogue class features. She uses her swashbuckler level as her rogue level for improved uncanny dodge.",
                                          "4f5cf35a3d8047f9b3dc8258c97eb2f4",
-                                         evasive_buff.Icon,
+                                         improved_uncanny_dodge.Icon,
                                          FeatureGroup.None,
-                                         CallOfTheWild.Helpers.CreateAddFact(evasive_hidden_toggle)
+                                         //CallOfTheWild.Helpers.CreateAddFact(evasive_hidden_toggle)
+                                         Create<EvasiveLogic>(e => e.Resource = panache_resource)
                                          );
         }
 
@@ -1417,12 +1391,11 @@ namespace Derring_Do
         //TODO - move components to Components.cs
         static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon, UnitDescriptor wielder)
         {
+            // Identical check for Duelist weapons
             if (weapon.Category.HasSubCategory(WeaponSubCategory.Light) || weapon.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (wielder.State.Features.DuelingMastery && weapon.Category == WeaponCategory.DuelingSword) || wielder.Ensure<DamageGracePart>().HasEntry(weapon.Category))
             {
                 return true;
             }
-
-
             return false;
         }
 

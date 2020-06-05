@@ -8,7 +8,7 @@ using Kingmaker.EntitySystem.Entities;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.RuleSystem;
 
-namespace Derring_Do.Components
+namespace Derring_Do
 {
     class Components
     {

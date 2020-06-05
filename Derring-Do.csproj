@@ -88,6 +88,9 @@
   <ItemGroup>
     <Compile Include="Classes\Swashbuckler.cs" />
     <Compile Include="Components\Components.cs" />
+    <Compile Include="Components\EvasiveLogic.cs" />
+    <Compile Include="Components\Extensions.cs" />
+    <Compile Include="Components\IResourceHandler.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
