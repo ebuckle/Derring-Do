@@ -7,6 +7,7 @@ using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.Blueprints.Facts;
+using Kingmaker.Blueprints.Items;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Designers.EventConditionActionSystem.Actions;
 using Kingmaker.Designers.Mechanics.Buffs;
@@ -22,10 +23,12 @@ using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.UnitLogic.Class.Kineticist.Properties;
 using Kingmaker.UnitLogic.Commands.Base;
 using Kingmaker.UnitLogic.FactLogic;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
+using Kingmaker.UnitLogic.Mechanics.Properties;
 using Kingmaker.Utility;
 using Kingmaker.View.Animation;
 using static CallOfTheWild.Helpers;
@@ -41,22 +44,17 @@ namespace Derring_Do
 
         static public BlueprintProgression swashbuckler_progression;
 
-        //DONE
         static public BlueprintFeature swashbuckler_proficiencies;
 
-        //TEST - DEEDS
         static public BlueprintFeature panache;
         static public ContextRestoreResource restore_panache;
 
-        //TEST - DEEDS
         static public BlueprintAbilityResource panache_resource;
 
         static public BlueprintFeature deeds;
 
-        //DONE
         static public BlueprintFeatureSelection fighter_feat;
 
-        //DONE
         static public BlueprintFeature swashbuckler_fighter_feat_prerequisite_replacement;
 
         //TODO - TWEAK CHA SWAP TO JUST BE FOR COMBAT FEATS
@@ -78,7 +76,6 @@ namespace Derring_Do
 
         static public BlueprintFeature opportune_parry_and_riposte_deed;
 
-        //TODO: Not working - figure out passive
         static public BlueprintFeature kip_up_deed;
 
         static public BlueprintFeature menacing_swordplay_deed;
@@ -95,7 +92,6 @@ namespace Derring_Do
 
         static public BlueprintFeature bleeding_wound_deed;
 
-        //TODO figure out passive
         static public BlueprintFeature evasive_deed;
 
         static public BlueprintFeature subtle_blade_deed;
@@ -131,7 +127,7 @@ namespace Derring_Do
                                                                  + "Role: Combining fancy footwork with quick and precise lunges, swashbucklers dart in and out of battle, harassing and thwarting their opponents. These fast and agile combatants serve as protectors for spellcasters and flank mates for rogues and slayers, while waiting for the opportunity to show panache and score the killing blow on some lumbering hulk. Swashbucklers often face death with wry humor, mocking it with jabbing wit."
                                                                  );
 
-            swashbuckler_class.m_Icon = duelist_class.Icon;
+            swashbuckler_class.m_Icon = fighter_class.Icon;
             swashbuckler_class.SkillPoints = duelist_class.SkillPoints;
             swashbuckler_class.HitDie = DiceType.D10;
             swashbuckler_class.BaseAttackBonus = fighter_class.BaseAttackBonus;
@@ -139,7 +135,6 @@ namespace Derring_Do
             swashbuckler_class.ReflexSave = rogue_class.ReflexSave;
             swashbuckler_class.WillSave = rogue_class.WillSave;
             swashbuckler_class.ClassSkills = new StatType[] { StatType.SkillAthletics, StatType.SkillMobility, StatType.SkillKnowledgeWorld, StatType.SkillPerception, StatType.SkillPersuasion };
-            swashbuckler_class.StartingGold = fighter_class.StartingGold;
             swashbuckler_class.PrimaryColor = fighter_class.PrimaryColor;
             swashbuckler_class.SecondaryColor = fighter_class.SecondaryColor;
             swashbuckler_class.RecommendedAttributes = new StatType[] { StatType.Dexterity, StatType.Charisma };
@@ -147,15 +142,27 @@ namespace Derring_Do
             swashbuckler_class.EquipmentEntities = magus_class.EquipmentEntities;
             swashbuckler_class.MaleEquipmentEntities = magus_class.MaleEquipmentEntities;
             swashbuckler_class.FemaleEquipmentEntities = magus_class.FemaleEquipmentEntities;
-            swashbuckler_class.ComponentsArray = magus_class.ComponentsArray;
-            // TODO: Starting equipment
-            swashbuckler_class.StartingItems = magus_class.StartingItems;
-            swashbuckler_class.StartingGold = magus_class.StartingGold;
+            swashbuckler_class.ComponentsArray = rogue_class.ComponentsArray;
+
+            swashbuckler_class.IsArcaneCaster = false;
+            swashbuckler_class.IsDivineCaster = false;
+
+            swashbuckler_class.StartingGold = fighter_class.StartingGold;
+            swashbuckler_class.StartingItems = new BlueprintItem[]
+            {
+                library.Get<BlueprintItem>("afbe88d27a0eb544583e00fa78ffb2c7"), //StuddedStandard
+                library.Get<BlueprintItem>("c83ff52bb6f90c3469660e0da575c9f8"), //StandardRapier
+                library.Get<BlueprintItem>("78aef04821150bd479314bc974ea73e2"), //Buckler
+                library.Get<BlueprintItem>("bc93a78d71bef084fa155e529660ed0d"), //PotionOfShieldOfFaith
+                library.Get<BlueprintItem>("d52566ae8cbe8dc4dae977ef51c27d91"), //PotionOfCureLightWounds
+            };
 
             createSwashbucklerProgression();
             swashbuckler_class.Progression = swashbuckler_progression;
 
             // TODO: Archetypes
+
+            // TODO: Feats
 
             swashbuckler_class.Archetypes = new BlueprintArchetype[] { };
             RegisterClass(swashbuckler_class);
@@ -179,16 +186,8 @@ namespace Derring_Do
             fighter_feat.SetDescription("At 4th level and every 4 levels thereafter, a swashbuckler gains a bonus feat in addition to those gained from normal advancement. These bonus feats must be selected from those listed as combat feats.");
             createSwashbucklerWeaponTraining();
             createSwashbucklerWeaponMastery();
-            // TODO: create methods for Swashbuckler abilities
-
-
-
-
-            //DEBUG ONLY
-            createDummyConsumePanache();
 
             //DEEDS
-            
             createDerringDoDeed();
             createDodgingPanacheDeed();
             createOpportuneParryAndRiposte();
@@ -217,7 +216,7 @@ namespace Derring_Do
                                                            FeatureGroup.None);
             swashbuckler_progression.Classes = getSwashbucklerArray();
 
-            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds, derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed, CONSUME_PANACHE_DUMMY),
+            swashbuckler_progression.LevelEntries = new LevelEntry[] { LevelEntry(1, swashbuckler_proficiencies, swashbuckler_finesse, panache, deeds, derring_do_deed, dodging_panache_deed, opportune_parry_and_riposte_deed),
                                                                        LevelEntry(2, charmed_life),
                                                                        LevelEntry(3, nimble_unlock, kip_up_deed, menacing_swordplay_deed, precise_strike_deed, swashbuckler_initiative_deed),
                                                                        LevelEntry(4, fighter_feat, swashbuckler_fighter_feat_prerequisite_replacement),
@@ -261,11 +260,8 @@ namespace Derring_Do
             swashbuckler_proficiencies.SetIcon(fighter.Icon);
         }
 
-        //TODO rename
         static void createPanache()
         {
-            var deadly_stab_buff = library.Get<BlueprintBuff>("ec409f2a917441378d5878ed37593834");
-
             panache_resource = CreateAbilityResource("PanacheResource", "Panache", "", "2087ab6ed0df4c8480379105bc0962a7", null);
             panache_resource.AddComponent(Create<MinResourceAmount>(m => m.value = 1));
             panache_resource.SetIncreasedByStat(0, StatType.Charisma);
@@ -278,7 +274,7 @@ namespace Derring_Do
                                     + "Critical Hit with a Light or One-Handed Piercing Melee Weapon: Each time the swashbuckler confirms a critical hit with a light or one-handed piercing melee weapon, she regains 1 panache point. Confirming a critical hit on a helpless or unaware creature or a creature that has fewer Hit Dice than half the swashbuckler’s character level doesn’t restore panache.\n"
                                     + "Killing Blow with a Light or One-Handed Piercing Melee Weapon: When the swashbuckler reduces a creature to 0 or fewer hit points with a light or one - handed piercing melee weapon attack while in combat, she regains 1 panache point. Destroying an unattended object, reducing a helpless or unaware creature to 0 or fewer hit points, or reducing a creature that has fewer Hit Dice than half the swashbuckler’s character level to 0 or fewer hit points doesn’t restore any panache.",
                                     "2d4095f5959e458b918515b8a21e3a54",
-                                    null, //TODO: icon
+                                    null,
                                     FeatureGroup.None,
                                     panache_resource.CreateAddAbilityResource(),
                                     Create<RestorePanacheAttackRollTrigger>(a => { a.CriticalHit = true; a.Action = CreateActionList(restore_panache); a.deadly_stab_buff = deadly_stab_buff;  }),
@@ -292,7 +288,7 @@ namespace Derring_Do
                                   "Deeds",
                                   "Swashbucklers spend panache points to accomplish deeds. Most deeds grant the swashbuckler a momentary bonus or effect, but some provide longer-lasting effects. Some deeds remain in effect while the swashbuckler has at least 1 panache point, but do not require expending panache to be maintained. A swashbuckler can only perform deeds of her level or lower. Unless otherwise noted, a deed can be performed multiple successive times, as long as the swashbuckler has or spends the required number of panache points to perform the deed.",
                                   "df3a37fa67524ed097e070be2ed8f706",
-                                  null, //TODO Icon
+                                  null,
                                   FeatureGroup.None
                                   );
         }
@@ -330,7 +326,7 @@ namespace Derring_Do
                                                "Charmed Life",
                                                "At 2nd level, the swashbuckler gains a knack for getting out of trouble. Three times per day as an immediate action before attempting a saving throw, she can add her Charisma modifier to the result of the save. She must choose to do this before the roll is made. At 6th level and every 4 levels thereafter, the number of times she can do this per day increases by one (to a maximum of 7 times per day at 18th level).",
                                                "ab653c76fc2744d9b51b40b0cffc9f3d",
-                                               bravery.Icon, //TODO Icon
+                                               bravery.Icon,
                                                null,
                                                CreateAddContextStatBonus(StatType.SaveFortitude, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
                                                CreateAddContextStatBonus(StatType.SaveReflex, ModifierDescriptor.UntypedStackable, rankType: AbilityRankType.StatBonus),
@@ -360,7 +356,7 @@ namespace Derring_Do
                                          charmed_life_buff.Name,
                                          charmed_life_buff.Description,
                                          "d96ad2e0ec4945d5b643119c1b173eaf",
-                                         charmed_life_buff.Icon, //TODO icon
+                                         charmed_life_buff.Icon,
                                          FeatureGroup.None,
                                          CallOfTheWild.Helpers.CreateAddAbilityResource(charmed_life_resource),
                                          CallOfTheWild.Helpers.CreateAddFact(charmed_life_ability)
@@ -575,41 +571,23 @@ namespace Derring_Do
             var kip_up_buff = CreateBuff("KipUpSwashbucklerBuff",
                                          "Kip-Up",
                                          "At 3rd level, while the swashbuckler has at least 1 panache point, she can kip-up from prone as a move action without provoking an attack of opportunity. She can kip-up as a swift action instead by spending 1 panache point.",
-                                         "e9e1fe13e22241938599e713869e343e",
+                                         "10e9ae1dcaa64a8bb10d68df1873d52c",
                                          freedom_of_movement.Icon,
-                                         null,
-                                         AddMechanicsFeature.MechanicsFeatureType.GetUpWithoutAttackOfOpportunity.CreateAddMechanics()
+                                         null
                                          );
 
-            var kip_up_toggle_ability = CreateActivatableAbility("KipUpActivatableSwashbucklerAbility",
-                                                                 kip_up_buff.Name,
-                                                                 kip_up_buff.Description,
-                                                                 "a28cb94820194c94b6d6e28199a4aebe",
-                                                                 kip_up_buff.Icon,
-                                                                 kip_up_buff,
-                                                                 AbilityActivationType.Immediately,
-                                                                 CommandType.Free,
-                                                                 null,
-                                                                 CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
-                                                                 );
-            kip_up_toggle_ability.IsOnByDefault = true;
-            kip_up_toggle_ability.DeactivateIfOwnerDisabled = false;
-            kip_up_toggle_ability.DeactivateIfCombatEnded = false;
-            kip_up_toggle_ability.DeactivateIfOwnerUnconscious = false;
-
             var kip_up_swift_activatable_ability = CreateActivatableAbility("KipUpSwiftActivatableSwashbucklerAbility",
-                                                                            kip_up_buff.Name + " (Swift Action)",
+                                                                            kip_up_buff.Name,
                                                                             kip_up_buff.Description,
                                                                             "0483e5e0c19d4fd59a1cb381adebc619",
                                                                             kip_up_buff.Icon,
-                                                                            null,
+                                                                            kip_up_buff,
                                                                             AbilityActivationType.Immediately,
-                                                                            CommandType.Swift,
+                                                                            CommandType.Free,
                                                                             null,
-                                                                            Create<RestrictionHasUnitProne>(),
-                                                                            CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.TurnOn),
-                                                                            CreateAddFactContextActions(CallOfTheWild.Helpers.Create<GetUpFromProne>())
+                                                                            CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
                                                                             );
+            kip_up_swift_activatable_ability.DeactivateImmediately = true;
 
             kip_up_deed = CreateFeature("KipUpSwashbucklerFeature",
                                         kip_up_buff.Name,
@@ -617,8 +595,8 @@ namespace Derring_Do
                                         "af26a97f3bf9470aa08bbe78967184f1",
                                         kip_up_buff.Icon,
                                         FeatureGroup.None,
-                                        CallOfTheWild.Helpers.CreateAddFact(kip_up_toggle_ability),
-                                        CallOfTheWild.Helpers.CreateAddFact(kip_up_swift_activatable_ability)
+                                        CallOfTheWild.Helpers.CreateAddFact(kip_up_swift_activatable_ability),
+                                        Create<KipUpLogic>(k => k.Resource = panache_resource)
                                         );
         }
 
@@ -1083,7 +1061,7 @@ namespace Derring_Do
                                               "Subtle Blade",
                                               "At 11th level, while a swashbuckler has at least 1 panache point, she is immune to disarm combat maneuvers made against a light or one-handed piercing melee weapon she is wielding.",
                                               "987932d860cf432fae1d9ead0e9a11d1",
-                                              null, //TODO icon
+                                              null,
                                               FeatureGroup.None,
                                               Create<SwashbucklerWeaponDisarmImmune>(s => s.resource = panache_resource)
                                               );
@@ -1132,7 +1110,10 @@ namespace Derring_Do
             var new_actions = CallOfTheWild.ExtensionMethods.AddToArray(actions.Activated.Actions, conditional);
             actions.Activated.Actions = new_actions;
 
-            // TODO - AC Buff
+            var fight_defensively_ac = library.Get<BlueprintUnitProperty>("fdf1a37b3173b4c41a6062515f754202");
+            var array = fight_defensively_ac.GetComponent<FightingDefensivelyACBonusProperty>().Features;
+            var new_array = array.AddToArray(dizzying_defence_buff, dizzying_defence_buff);
+            fight_defensively_ac.GetComponent<FightingDefensivelyACBonusProperty>().Features = new_array;
         }
 
         static void createPerfectThrust()

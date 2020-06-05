@@ -3,11 +3,6 @@ using Kingmaker.Blueprints.Facts;
 using Kingmaker.ElementsSystem;
 using Kingmaker.RuleSystem.Rules;
 using Kingmaker.UnitLogic.Mechanics.Components;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static Derring_Do.Extensions;
 
 namespace Derring_Do

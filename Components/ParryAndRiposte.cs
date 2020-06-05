@@ -20,7 +20,6 @@ namespace Derring_Do
     {
         public void OnEventAboutToTrigger(RuleAttackRoll evt)
         {
-            Main.logger.Log("Incoming attack!");
             if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < cost)
             {
                 return;

@@ -1,61 +1,79 @@
-﻿using Kingmaker.Blueprints;
-using Kingmaker.EntitySystem.Entities;
+﻿using CallOfTheWild;
+using Kingmaker.Blueprints;
+using Kingmaker.Blueprints.Facts;
+using Kingmaker.Blueprints.Validation;
+using Kingmaker.PubSubSystem;
 using Kingmaker.UnitLogic;
-using Kingmaker.UnitLogic.Abilities.Components.Base;
-using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
-using Kingmaker.UnitLogic.Mechanics.Actions;
-using System;
+using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.View;
 
 namespace Derring_Do
 {
-    [ComponentName("Check Caster is Prone")]
-    [AllowedOn(typeof(BlueprintComponent))]
-    public class AbilityCasterIsProne : BlueprintComponent, IAbilityCasterChecker
+    [Harmony12.HarmonyPatch(typeof(UnitEntityView))]
+    [Harmony12.HarmonyPatch("LeaveProneState", Harmony12.MethodType.Normal)]
+    class Patch_UnitEntityView_LeaveProneState
     {
-        public bool CorrectCaster(UnitEntityData caster)
+        static BlueprintBuff kip_up_buff = Main.library.Get<BlueprintBuff>("10e9ae1dcaa64a8bb10d68df1873d52c");
+        static BlueprintAbilityResource resource = Main.library.Get<BlueprintAbilityResource>("2087ab6ed0df4c8480379105bc0962a7");
+
+        static public void Postfix(UnitEntityView __instance)
         {
-            if (!caster.View.IsProne)
+            var unit = __instance.EntityData;
+
+            if (unit.Descriptor.HasFact(kip_up_buff) && unit.Descriptor.Resources.GetResourceAmount(resource) > 0 && unit.CombatState.Cooldown.SwiftAction == 0.0f)
             {
-                return false;
+                unit.CombatState.Cooldown.SwiftAction = 6.0f;
+                unit.Descriptor.Resources.Spend(resource, 1);
+                unit.CombatState.Cooldown.MoveAction = 0.0f;
             }
-            return true;
-        }
-        public string GetReason()
-        {
-            return "Must be prone";
         }
     }
 
-    public class GetUpFromProne : ContextAction
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class KipUpLogic : OwnedGameLogicComponent<UnitDescriptor>, IResourceHandler, IInitiatorRulebookSubscriber, ITargetRulebookSubscriber, IGlobalSubscriber
     {
-        public override string GetCaption()
-        {
-            return "Get up from prone";
-        }
+        public BlueprintAbilityResource Resource;
+        private bool HasAddedKipUp;
 
-        public override void RunAction()
+        public void HandleResourceChanged(UnitDescriptor owner, BlueprintScriptableObject resourceBlueprint)
         {
-            var owner = this.Context.MaybeOwner;
-            if (owner == null)
+            if (owner != Owner)
             {
                 return;
-            };
-            owner.Descriptor.State.Prone.ShouldBeActive = false;
-            owner.Descriptor.State.Prone.Active = false;
-            owner.Descriptor.State.RemoveCondition(UnitCondition.Prone);
-            owner.Descriptor.State.Prone.Duration = TimeSpan.Zero;
-            owner.View.LeaveProneState();
-            owner.View.AnimationManager.StandUpImmediately();
-        }
-    }
+            }
 
-    [AllowMultipleComponents]
-    [ComponentName("AA restriction unit prone")]
-    public class RestrictionHasUnitProne : ActivatableAbilityRestriction
-    {
-        public override bool IsAvailable()
+            var canAffordDeed = false;
+            if (Resource == null)
+            {
+                Main.logger.Log("Panache resource is null");
+            }
+            else
+            {
+                canAffordDeed = HasPanache(owner);
+            }
+            if (HasAddedKipUp && !canAffordDeed)
+            {
+                Owner.State.Features.GetUpWithoutAttackOfOpportunity.Release();
+                HasAddedKipUp = false;
+            }
+            if (!HasAddedKipUp && canAffordDeed)
+            {
+                Owner.State.Features.GetUpWithoutAttackOfOpportunity.Retain();
+                HasAddedKipUp = true;
+            }
+        }
+
+        public override void Validate(ValidationContext context)
         {
-            return base.Owner.Unit.View.IsProne;
+            if (Resource == null)
+            {
+                context.AddError("Resource is null");
+            }
+        }
+
+        private bool HasPanache(UnitDescriptor unit)
+        {
+            return (unit.Resources.GetResourceAmount(Resource) > 0);
         }
     }
 }

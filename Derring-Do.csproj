@@ -94,7 +94,7 @@
     <Compile Include="Components\DerringDo.cs" />
     <Compile Include="Components\DizzyingDefence.cs" />
     <Compile Include="Components\DodgingPanache.cs" />
-    <Compile Include="Components\EvasiveLogic.cs" />
+    <Compile Include="Components\Evasive.cs" />
     <Compile Include="Components\Extensions.cs" />
     <Compile Include="Components\IResourceHandler.cs" />
     <Compile Include="Components\KipUp.cs" />
