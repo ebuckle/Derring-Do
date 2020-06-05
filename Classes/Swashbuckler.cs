@@ -2,7 +2,6 @@
 using CallOfTheWild.BleedMechanics;
 using CallOfTheWild.NewMechanics;
 using CallOfTheWild.ResourceMechanics;
-using Kingmaker;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Selection;
@@ -10,10 +9,8 @@ using Kingmaker.Blueprints.Classes.Spells;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.Blueprints.Items.Armors;
 using Kingmaker.Blueprints.Items.Ecnchantments;
-using Kingmaker.Blueprints.Items.Weapons;
 using Kingmaker.Blueprints.Root;
 using Kingmaker.Controllers;
-using Kingmaker.Controllers.Combat;
 using Kingmaker.Designers.EventConditionActionSystem.Actions;
 using Kingmaker.Designers.Mechanics.Buffs;
 using Kingmaker.Designers.Mechanics.Facts;
@@ -22,39 +19,29 @@ using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
-using Kingmaker.Enums.Damage;
 using Kingmaker.Items;
-using Kingmaker.Items.Slots;
 using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem;
 using Kingmaker.RuleSystem.Rules;
 using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
-using Kingmaker.UnitLogic.Abilities;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.Abilities.Components.Base;
 using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
-using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
-using Kingmaker.UnitLogic.Class.Kineticist.Properties;
-using Kingmaker.UnitLogic.Commands;
 using Kingmaker.UnitLogic.Commands.Base;
 using Kingmaker.UnitLogic.FactLogic;
-using Kingmaker.UnitLogic.Mechanics;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using Kingmaker.UnitLogic.Mechanics.ContextData;
 using Kingmaker.UnitLogic.Parts;
 using Kingmaker.Utility;
 using Kingmaker.View.Animation;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 using static CallOfTheWild.Helpers;
+using static Derring_Do.Extensions;
 using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
 namespace Derring_Do
@@ -135,6 +122,7 @@ namespace Derring_Do
         static public BlueprintFeature cheat_death_deed;
 
         static public BlueprintFeature deadly_stab_deed;
+        static public BlueprintBuff deadly_stab_buff;
 
         static public BlueprintFeature stunning_stab_deed;
 
@@ -289,6 +277,8 @@ namespace Derring_Do
         //TODO rename
         static void createPanache()
         {
+            var deadly_stab_buff = library.Get<BlueprintBuff>("ec409f2a917441378d5878ed37593834");
+
             panache_resource = CreateAbilityResource("PanacheResource", "Panache", "", "2087ab6ed0df4c8480379105bc0962a7", null);
             panache_resource.AddComponent(Create<MinResourceAmount>(m => m.value = 1));
             panache_resource.SetIncreasedByStat(0, StatType.Charisma);
@@ -304,8 +294,8 @@ namespace Derring_Do
                                     null, //TODO: icon
                                     FeatureGroup.None,
                                     panache_resource.CreateAddAbilityResource(),
-                                    Create<RestorePanacheAttackRollTrigger>(a => { a.CriticalHit = true; }),
-                                    Create<RestorePanacheAttackRollTrigger>(a => { a.ReduceHPToZero = true;})
+                                    Create<RestorePanacheAttackRollTrigger>(a => { a.CriticalHit = true; a.Action = CreateActionList(restore_panache); a.deadly_stab_buff = deadly_stab_buff;  }),
+                                    Create<RestorePanacheAttackRollTrigger>(a => { a.ReduceHPToZero = true; a.Action = CreateActionList(restore_panache); })
                                     );
         }
 
@@ -483,7 +473,7 @@ namespace Derring_Do
                                              "1ec72614c5fe40deba1fd3553124389b",
                                              longstrider.Icon,
                                              null,
-                                             Create<AddExplodingD6sToDerringDoSkillChecks>()
+                                             Create<AddExplodingD6sToDerringDoSkillChecks>(a => a.resource = panache_resource)
                                              );
 
             var derring_do_ability = CreateActivatableAbility("DerringDoSwashbucklerToggleAbility",
@@ -520,7 +510,7 @@ namespace Derring_Do
                                                   "c466576d4a784d3f94300e08afa57784",
                                                   dextrous_duelist.Icon,
                                                   null,
-                                                  Create<AddACBonusOnAttackAndConsumePanache>()
+                                                  Create<AddACBonusOnAttackAndConsumePanache>(a => a.resource = panache_resource)
                                                   );
             var apply_buff = Common.createContextActionApplyBuff(dodging_panache_buff, CreateContextDuration(1), dispellable: false);
 
@@ -561,7 +551,7 @@ namespace Derring_Do
                                                               "a48086ca55a7472284780720a79deb03",
                                                               duelist_parry.Icon,
                                                               null,
-                                                              Create<SwashbucklerParryAndRiposte>(s => s.AttackerCondition = null)
+                                                              Create<SwashbucklerParryAndRiposte>(s => { s.AttackerCondition = null; s.resource = panache_resource; })
                                                               );
 
             var apply_buff = Common.createContextActionApplyBuff(opportune_parry_and_riposte_buff, CreateContextDuration(2), dispellable: false);
@@ -657,7 +647,7 @@ namespace Derring_Do
                                                      "0a1b5e625521446d9e4f2d0f30eb758a",
                                                      shatter_confidence.Icon,
                                                      null,
-                                                     Create<IndimidateOnHitWithSwashbucklerWeapon>(i => i.demoralize_action = demoralize_action)
+                                                     Create<IndimidateOnHitWithSwashbucklerWeapon>(i => { i.demoralize_action = demoralize_action; i.resource = panache_resource; })
                                                      );
 
             var menacing_swordplay_toggle_ability = CreateActivatableAbility("MenacingSwordplaySwashbucklerActivatableAbility",
@@ -696,7 +686,7 @@ namespace Derring_Do
                                                  "8fa7914d1d734478b9f863e7a514427e",
                                                  inspire_heroics.Icon,
                                                  null,
-                                                 Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => a.is_passive = false)
+                                                 Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => { a.is_passive = false; a.resource = panache_resource; a.swashbuckler_class = swashbuckler_class; })
                                                  );
 
             var apply_buff = Common.createContextActionApplyBuff(precise_strike_buff, Helpers.CreateContextDuration(), dispellable: false, duration_seconds: 4);
@@ -722,7 +712,7 @@ namespace Derring_Do
                                                 precise_strike_buff.Icon,
                                                 FeatureGroup.None,
                                                 CallOfTheWild.Helpers.CreateAddFact(precise_strike_ability),
-                                                Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => a.is_passive = true)
+                                                Create<AddBonusPrecisionDamageToSwashbucklerWeapons>(a => { a.is_passive = true; a.resource = panache_resource; a.swashbuckler_class = swashbuckler_class; })
                                                 );
         }
 
@@ -785,10 +775,11 @@ namespace Derring_Do
                                                        "",
                                                        Helpers.CreateRunActions(apply_buff),
                                                        Create<AbilityCasterSwashbucklerWeaponCheck>(),
-                                                       Create<AbilityCasterHasAtLeastOnePanache>(),
+                                                       Create<AbilityCasterHasAtLeastOnePanache>(a => a.resource = panache_resource),
                                                        Helpers.Create<AttackAnimation>()
                                                        );
             superior_feint_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
+            superior_feint_ability.NeedEquipWeapons = true;
 
             superior_feint_deed = CreateFeature("SuperiorFeintSwashbucklerFeature",
                                                 superior_feint_debuff.Name,
@@ -835,6 +826,7 @@ namespace Derring_Do
                                                              );
             Common.setAsFullRoundAction(targeted_strike_arms_ability);
             targeted_strike_arms_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
+            targeted_strike_arms_ability.NeedEquipWeapons = true;
 
             var targeted_strike_head_ability = CreateAbility("TargetedStrikeHeadSwashbucklerAbility",
                                                              base_name + " - Head",
@@ -855,6 +847,7 @@ namespace Derring_Do
                                                              );
             Common.setAsFullRoundAction(targeted_strike_head_ability);
             targeted_strike_head_ability.setMiscAbilityParametersTouchHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+            targeted_strike_head_ability.NeedEquipWeapons = true;
 
             var targeted_strike_legs_ability = CreateAbility("TargetedStrikesLegsSwashbucklerAbility",
                                                              base_name + " - Legs",
@@ -875,6 +868,7 @@ namespace Derring_Do
                                                              );
             Common.setAsFullRoundAction(targeted_strike_legs_ability);
             targeted_strike_legs_ability.setMiscAbilityParametersTouchHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+            targeted_strike_legs_ability.NeedEquipWeapons = true;
 
             var targeted_strike_torso_ability = CreateAbility("TargetedStrikeTorsoSwashbucklerAbility",
                                                              base_name + " - Torso",
@@ -895,6 +889,7 @@ namespace Derring_Do
                                                              );
             Common.setAsFullRoundAction(targeted_strike_torso_ability);
             targeted_strike_torso_ability.setMiscAbilityParametersTouchHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+            targeted_strike_torso_ability.NeedEquipWeapons = true;
 
             var wrapper = Common.createVariantWrapper("SwashbucklerTargetedStrikeAbility", "a7322f3c039547aa84ff4e4b6d817433", targeted_strike_arms_ability, targeted_strike_head_ability, targeted_strike_legs_ability, targeted_strike_torso_ability);
             wrapper.SetName("Targeted Strike");
@@ -915,8 +910,8 @@ namespace Derring_Do
         {
             var bleed1d6 = library.Get<BlueprintBuff>("75039846c3d85d940aa96c249b97e562");
             var icon = NewSpells.deadly_juggernaut.Icon;
-            var spend_one_panache = Create<SpendPanache>(s => s.amount = 1);
-            var spend_two_panache = Create<SpendPanache>(s => s.amount = 2);
+            var spend_one_panache = Create<SpendPanache>(s => { s.amount = 1; s.resource = panache_resource; });
+            var spend_two_panache = Create<SpendPanache>(s => { s.amount = 2; s.resource = panache_resource; });
 
             var bleeding_wound_group = (ActivatableAbilityGroup) EnumUtils.GetMaxValue<ActivatableAbilityGroup>() + EnumUtils.GetMaxValue<ActivatableAbilityGroupExtension>() + 1;
 
@@ -940,7 +935,7 @@ namespace Derring_Do
                                                          "064247db294242ae9dca76a20a929832",
                                                          icon,
                                                          null,
-                                                         Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 1; a.Action = Helpers.CreateActionList(apply_buff); })
+                                                         Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 1; a.Action = Helpers.CreateActionList(apply_buff); a.resource = panache_resource;  })
                                                          );
             var bleeding_wound_toggle = Helpers.CreateActivatableAbility("BleedingWoundSwashbucklerToggleAbility",
                                                                          bleeding_wound_buff.Name,
@@ -976,7 +971,7 @@ namespace Derring_Do
                                                                   "3f8b685f59bd4923a30cb04769216509",
                                                                   icon,
                                                                   null,
-                                                                  Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_strength_buff); })
+                                                                  Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_strength_buff); a.resource = panache_resource; })
                                                                   );
             var bleeding_wound_strength_toggle = Helpers.CreateActivatableAbility("BleedingWoundStrengthSwashbucklerToggleAbility",
                                                                                   bleeding_wound_strength_buff.Name,
@@ -1013,7 +1008,7 @@ namespace Derring_Do
                                                                    "0dc0a9feb1d54c129dedf07f93b29186",
                                                                    icon,
                                                                    null,
-                                                                   Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_dexterity_buff); })
+                                                                   Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_dexterity_buff); a.resource = panache_resource; })
                                                                    );
             var bleeding_wound_dexterity_toggle = Helpers.CreateActivatableAbility("BleedingWoundDexteritySwashbucklerToggleAbility",
                                                                                    bleeding_wound_dexterity_buff.Name,
@@ -1050,7 +1045,7 @@ namespace Derring_Do
                                                                       "9ec3a07dda584a0986350e7c624f9755",
                                                                       icon,
                                                                       null,
-                                                                      Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_constitution_buff); })
+                                                                      Create<ApplySwashbucklerBleedOnHit>(a => { a.need_resource = 2; a.Action = Helpers.CreateActionList(apply_constitution_buff); a.resource = panache_resource; })
                                                                       );
             var bleeding_wound_constitution_toggle = Helpers.CreateActivatableAbility("BleedingWoundConstitutionSwashbucklerToggleAbility",
                                                                                       bleeding_wound_constitution_buff.Name,
@@ -1103,7 +1098,7 @@ namespace Derring_Do
                                               "987932d860cf432fae1d9ead0e9a11d1",
                                               null, //TODO icon
                                               FeatureGroup.None,
-                                              Create<SwashbucklerWeaponDisarmImmune>()
+                                              Create<SwashbucklerWeaponDisarmImmune>(s => s.resource = panache_resource)
                                               );
         }
 
@@ -1179,7 +1174,7 @@ namespace Derring_Do
                                                        "",
                                                        "",
                                                        Create<AbilityCasterSwashbucklerWeaponCheck>(),
-                                                       Create<AbilityCasterHasAtLeastOnePanache>(),
+                                                       Create<AbilityCasterHasAtLeastOnePanache>(a => a.resource = panache_resource),
                                                        Helpers.Create<AttackAnimation>(),
                                                        Helpers.CreateRunActions(Common.createContextActionOnContextCaster(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(1), dispellable: false)),
                                                                                 Common.createContextActionAttack(action_on_miss: Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff)))
@@ -1188,6 +1183,7 @@ namespace Derring_Do
                                                        );
             Common.setAsFullRoundAction(perfect_thrust_ability);
             perfect_thrust_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
+            perfect_thrust_ability.NeedEquipWeapons = true;
 
             perfect_thrust_deed = CreateFeature("PerfectThrustSwashbucklerFeature",
                                                 perfect_thrust_ability.Name,
@@ -1248,7 +1244,7 @@ namespace Derring_Do
                                               "5f28a8261ca1470c9b40eeceddff8c5c",
                                               resurrection.Icon,
                                               null,
-                                              Create<ReduceIncomingKillingBlow>()
+                                              Create<ReduceIncomingKillingBlow>(r => r.resource = panache_resource)
                                               );
 
             var cheat_death_ability = CreateActivatableAbility("CheatDeathSwashbucklerToggleAbility",
@@ -1278,13 +1274,13 @@ namespace Derring_Do
         {
             var master_strike_toggle = library.Get<BlueprintActivatableAbility>("926bff1386d58824688363a3eeb98260");
 
-            var deadly_stab_buff = library.CopyAndAdd<BlueprintBuff>("eab680abdb0194343af169af393c2603", "DeadlyStabSwashbucklerBuff", "ec409f2a917441378d5878ed37593834"); //Master strike buff
+            deadly_stab_buff = library.CopyAndAdd<BlueprintBuff>("eab680abdb0194343af169af393c2603", "DeadlyStabSwashbucklerBuff", "ec409f2a917441378d5878ed37593834"); //Master strike buff
             deadly_stab_buff.SetName("Deadly Stab");
             deadly_stab_buff.SetDescription("At 19th level, when the swashbuckler confirms a critical hit with a light or one-handed piercing melee weapon, in addition to the normal damage, she can spend 1 panache point to inflict a deadly stab. The target must succeed at a Fortitude saving throw or die. The DC of this save is 10 + 1/2 the swashbuckler’s level + the swashbuckler’s Dexterity modifier. This is a death attack. Performing this deed does not grant the swashbuckler a panache point.");
             deadly_stab_buff.SetIcon(master_strike_toggle.Icon);
             deadly_stab_buff.ReplaceComponent<ContextCalculateAbilityParamsBasedOnClass>(c => { c.StatType = StatType.Dexterity; c.CharacterClass = swashbuckler_class; });
             var saving_throw_action = (deadly_stab_buff.GetComponent<AddInitiatorAttackWithWeaponTrigger>().Action.Actions[0] as Conditional).IfFalse.Actions[0];
-            deadly_stab_buff.ReplaceComponent<AddInitiatorAttackWithWeaponTrigger>(a => { a.CriticalHit = true; a.OnlySneakAttack = false; a.DuelistWeapon = true; a.Action = Helpers.CreateActionList(saving_throw_action, Create<SpendPanache>(s => s.amount = 1)); });
+            deadly_stab_buff.ReplaceComponent<AddInitiatorAttackWithWeaponTrigger>(a => { a.CriticalHit = true; a.OnlySneakAttack = false; a.DuelistWeapon = true; a.Action = Helpers.CreateActionList(saving_throw_action, Create<SpendPanache>(s => { s.amount = 1; s.resource = panache_resource; })); });
 
             var deadly_stab_ability = CreateActivatableAbility("DeadlyStabSwashbucklerAbility",
                                                                deadly_stab_buff.Name,
@@ -1312,7 +1308,7 @@ namespace Derring_Do
         {
             var stunned_buff = library.Get<BlueprintBuff>("09d39b38bb7c6014394b6daced9bacd3");
             var effect_action = Helpers.CreateActionList(Common.createContextSavedApplyBuff(stunned_buff, Helpers.CreateContextDuration(Common.createSimpleContextValue(1))));
-            var action = Helpers.CreateActionList(Common.createContextActionSavingThrow(SavingThrowType.Fortitude, effect_action), Create<SpendPanache>(s => s.amount = 2));
+            var action = Helpers.CreateActionList(Common.createContextActionSavingThrow(SavingThrowType.Fortitude, effect_action), Create<SpendPanache>(s => { s.amount = 2; s.resource = panache_resource; }));
 
             var stunning_stab_buff = CreateBuff("StunningStabSwashbucklerBuff",
                                                 "Stunning Stab",
@@ -1385,1074 +1381,6 @@ namespace Derring_Do
                                                   Helpers.CreateAddFact(REGAIN_PANACHE_DUMMY_ABILITY),
                                                   CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource)
                                                   );
-        }
-
-        //COMPONENTS AND HELPERS
-        //TODO - move components to Components.cs
-        static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon, UnitDescriptor wielder)
-        {
-            // Identical check for Duelist weapons
-            if (weapon.Category.HasSubCategory(WeaponSubCategory.Light) || weapon.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (wielder.State.Features.DuelingMastery && weapon.Category == WeaponCategory.DuelingSword) || wielder.Ensure<DamageGracePart>().HasEntry(weapon.Category))
-            {
-                return true;
-            }
-            return false;
-        }
-
-        [ComponentName("Add feature if owner has no armor or light armor")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        [AllowMultipleComponents]
-        public class SwashbucklerNoArmorOrLightArmorNimbleFeatureUnlock : OwnedGameLogicComponent<UnitDescriptor>, IUnitActiveEquipmentSetHandler, IUnitEquipmentHandler, IGlobalSubscriber
-        {
-            public BlueprintUnitFact NewFact;
-            [JsonProperty]
-            private Fact m_AppliedFact;
-
-            public override void OnFactActivate()
-            {
-                this.CheckEligibility();
-            }
-
-            public override void OnFactDeactivate()
-            {
-                this.RemoveFact();
-            }
-
-            public void HandleUnitChangeActiveEquipmentSet(UnitDescriptor unit)
-            {
-                this.CheckEligibility();
-            }
-
-            public void CheckEligibility()
-            {
-                if ((!this.Owner.Body.Armor.HasArmor || !this.Owner.Body.Armor.Armor.Blueprint.IsArmor) || (this.Owner.Body.Armor.Armor.Blueprint.ProficiencyGroup == ArmorProficiencyGroup.Light))
-                {
-                    this.AddFact();
-                }
-                else
-                {
-                    this.RemoveFact();
-                }
-            }
-
-            public void AddFact()
-            {
-                if (this.m_AppliedFact != null)
-                    return;
-                this.m_AppliedFact = this.Owner.AddFact(this.NewFact, (MechanicsContext)null, (FeatureParam)null);
-            }
-
-            public void RemoveFact()
-            {
-                if (this.m_AppliedFact == null)
-                    return;
-                this.Owner.RemoveFact(this.m_AppliedFact);
-                this.m_AppliedFact = (Fact)null;
-            }
-
-            public void HandleEquipmentSlotUpdated(ItemSlot slot, ItemEntity previousItem)
-            {
-                if (slot.Owner != this.Owner)
-                    return;
-                this.CheckEligibility();
-            }
-
-            public new void OnTurnOn()
-            {
-                this.CheckEligibility();
-            }
-        }
-
-        [ComponentName("Add Improved Critical if owner is wielding a swashbuckler weapon")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class ImprovedCriticalOnWieldingSwashbucklerWeapon : RuleInitiatorLogicComponent<RuleCalculateWeaponStats>
-        {
-            public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
-            {
-                if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
-                {
-                    evt.DoubleCriticalEdge = true;
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleCalculateWeaponStats evt)
-            {
-            }
-        }
-
-        [ComponentName("Increase critical multiplier by one if owner is wielding a swashbuckler weapon")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class IncreasedCriticalMultiplierWithSwashbucklerWeapon : RuleInitiatorLogicComponent<RuleCalculateWeaponStats>
-        {
-            public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
-            {
-                if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
-                {
-                    evt.AdditionalCriticalMultiplier = 1;
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleCalculateWeaponStats evt)
-            {
-            }
-        }
-
-        [ComponentName("Crits with a swashbuckler weapon are autoconfirmed")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class CritAutoconfirmWithSwashbucklerWeapons : RuleInitiatorLogicComponent<RuleAttackRoll>
-        {
-            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
-            {
-                if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
-                {
-                    evt.AutoCriticalConfirmation = true;
-                }
-            }
-            public override void OnEventDidTrigger(RuleAttackRoll evt)
-            {
-            }
-        }
-
-        [Harmony12.HarmonyPatch(typeof(UnitPartWeaponTraining))]
-        [Harmony12.HarmonyPatch("GetWeaponRank", Harmony12.MethodType.Normal)]
-        [Harmony12.HarmonyPatch(new Type[] { typeof(ItemEntityWeapon) })]
-        class Patch_UnitPartWeaponTraining_GetWeaponRank
-        {
-            static BlueprintFeature swashbuckler_weapon_training = Main.library.Get<BlueprintFeature>("ac1b0c88a06346b4a0fe35465a74daff");
-
-            static public void Postfix(UnitPartWeaponTraining __instance, ItemEntityWeapon weapon, ref int __result)
-            {
-                if (weapon == null)
-                {
-                    return;
-                }
-
-                if (!isLightOrOneHandedPiercingWeapon(weapon.Blueprint, __instance.Owner.Unit.Descriptor))
-                {
-                    return;
-                }
-
-                var fact = __instance.Owner.GetFact(swashbuckler_weapon_training);
-
-                if (fact == null)
-                {
-                    return;
-                }
-                var rank = fact.GetRank();
-
-                if (rank > __result)
-                {
-                    __result = rank;
-                }
-            }
-        }
-
-        [Harmony12.HarmonyPatch(typeof(FightingDefensivelyAttackPenaltyProperty))]
-        [Harmony12.HarmonyPatch("GetInt", Harmony12.MethodType.Normal)]
-        class Patch_FightingDefensivelyAttackPenaltyProperty_GetInt
-        {
-            static BlueprintBuff dazzling_defence_buff = Main.library.Get<BlueprintBuff>("9800e6e70ec84664b94b4cf1125e7c42");
-
-            static public void Postfix(FightingDefensivelyAttackPenaltyProperty __instance, UnitEntityData unit, ref int __result)
-            {
-                Fact fact = unit.Descriptor.GetFact(dazzling_defence_buff);
-                if (fact != null)
-                {
-                    __result -= 2;
-                }
-            }
-        }
-
-
-        // TODO - CONSIDER HARD CODING VALUES SINCE ONLY USED ONCE
-        [ComponentName("Add Static Bonus On Initiative Check If ResourceAvailable")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        [AllowMultipleComponents]
-        public class AddStaticBonusOnInitiativeCheckIfResourceAvailable : RuleInitiatorLogicComponent<RuleInitiativeRoll>
-        {
-            public BlueprintAbilityResource resource;
-            public int amount;
-            public int bonus;
-
-            private int getResourceAmount(RuleInitiativeRoll evt)
-            {
-                // TODO - Cost reduction feats
-                return amount > 0 ? amount : 0;
-            }
-
-            public override void OnEventAboutToTrigger(RuleInitiativeRoll evt)
-            {
-                Main.logger.Log("About to roll initiative");
-
-                int need_resource = getResourceAmount(evt);
-
-                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                {
-                    Main.logger.Log("Not enough resource - had " + evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
-                    return;
-                }
-                Main.logger.Log("Adding bonus of " + bonus + " to the roll.");
-                evt.AddTemporaryModifier(Owner.Stats.Initiative.AddModifier(bonus, this, ModifierDescriptor.UntypedStackable));
-            }
-
-            public override void OnEventDidTrigger(RuleInitiativeRoll evt)
-            {
-            }
-        }
-
-        [ComponentName("Add Exploding D6s on Derring-Do Skills and Spend Panache")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        [AllowedOn(typeof(BlueprintBuff))]
-        [AllowMultipleComponents]
-        public class AddExplodingD6sToDerringDoSkillChecks : RuleInitiatorLogicComponent<RuleSkillCheck>
-        {
-            public BlueprintAbilityResource resource = panache_resource;
-            private int cost = 1;
-            private int will_spend = 0;
-            private StatType[] stats = { StatType.SkillMobility, StatType.SkillAthletics };
-
-            private int getResourceCost(RuleSkillCheck evt)
-            {
-                // TODO - Cost reduction feats
-                return cost > 0 ? cost : 0;
-            }
-
-            private int calculateExplodingDice(RuleSkillCheck evt)
-            {
-                int total = 0;
-                DiceFormula dice_formula = new DiceFormula(1, DiceType.D6);
-                RuleRollDice rule = new RuleRollDice(evt.Initiator, dice_formula);
-                int roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
-                total += roll;
-                Main.logger.Log("Roll 1 was a " + roll);
-                if (roll == 6)
-                {
-                    Main.logger.Log("Exploding!");
-                    int attempts = Owner.Stats.Dexterity.Bonus > 0 ? Owner.Stats.Dexterity.Bonus : 1;
-                    for (int x = 0; x < attempts; x++)
-                    {
-                        rule = new RuleRollDice(evt.Initiator, dice_formula);
-                        roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
-                        total += roll;
-                        Main.logger.Log("Extra attempt " + x + " was a " + roll);
-                        if (roll != 6)
-                        {
-                            break;
-                        }
-                    }
-                }
-                return total;
-            }
-
-            public override void OnEventAboutToTrigger(RuleSkillCheck evt)
-            {
-                Main.logger.Log("About to roll Derring-Do check");
-                will_spend = 0;
-
-                if (!stats.Contains(evt.StatType))
-                {
-                    Main.logger.Log("Not an Athletics or Mobility check");
-                    return;
-                }
-                Main.logger.Log("Is an Athletics or Mobility check");
-
-                int need_resource = getResourceCost(evt);
-                Main.logger.Log("Will cost " + need_resource);
-
-                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                {
-                    Main.logger.Log("Not enough resource - had " + evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
-                    return;
-                }
-
-                will_spend = need_resource;
-
-                int result = calculateExplodingDice(evt);
-                Main.logger.Log("Adding bonus of " + result + " to check");
-                evt.Bonus.AddModifier(result, this, ModifierDescriptor.UntypedStackable);
-            }
-
-            public override void OnEventDidTrigger(RuleSkillCheck evt)
-            {
-                if (will_spend > 0)
-                {
-                    Main.logger.Log("Spending " + will_spend + " panache");
-                    evt.Initiator.Descriptor.Resources.Spend(resource, will_spend);
-                }
-                will_spend = 0;
-            }
-        }
-
-        [ComponentName("Add Dodge Bonus to AC Against Attack")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        [AllowedOn(typeof(BlueprintBuff))]
-        [AllowMultipleComponents]
-        public class AddACBonusOnAttackAndConsumePanache : RuleTargetLogicComponent<RuleAttackWithWeapon>
-        {
-            private int cost = 1;
-            private int bonus;
-            private int will_spend = 0;
-            public BlueprintAbilityResource resource = panache_resource;
-            public ActionList ActionOnSelf = CreateActionList(Create<ContextActionRemoveSelf>());
-
-            private int getResourceCost(RuleAttackWithWeapon evt)
-            {
-                // TODO - Cost reduction feats
-                return cost > 0 ? cost : 0;
-            }
-
-            public override void OnEventAboutToTrigger(RuleAttackWithWeapon evt)
-            {
-                Main.logger.Log("About to be attacked");
-                if (!evt.Weapon.Blueprint.IsMelee)
-                {
-                    Main.logger.Log("Attack was not with a melee weapon");
-                    return;
-                }
-                will_spend = 0;
-                int need_resource = getResourceCost(evt);
-                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                {
-                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
-                    return;
-                }
-
-                will_spend = need_resource;
-
-                bonus = Owner.Stats.Charisma.Bonus > 0 ? Owner.Stats.Charisma.Bonus : 0;
-                Main.logger.Log("Adding bonus of " + bonus + " to AC");
-                evt.AddTemporaryModifier(evt.Target.Stats.AC.AddModifier(bonus, this, ModifierDescriptor.Dodge));
-            }
-
-            public override void OnEventDidTrigger(RuleAttackWithWeapon evt)
-            {
-                if (will_spend > 0)
-                {
-                    Main.logger.Log("Spending " + will_spend + " panache");
-                    evt.Target.Descriptor.Resources.Spend(resource, will_spend);
-                }
-                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
-                if (factContextOwner != null)
-                {
-                    factContextOwner.RunActionInContext(this.ActionOnSelf, evt.Initiator);
-                }
-                will_spend = 0;
-            }
-        }
-
-        [ComponentName("Check Caster is Wearing Light or No Armor and is at Light Load")]
-        [AllowedOn(typeof(BlueprintAbility))]
-        public class AbilityCasterLightOrNoArmorCheck: BlueprintComponent, IAbilityCasterChecker
-        {
-            public bool CorrectCaster(UnitEntityData caster)
-            {
-                if ((!caster.Body.Armor.HasArmor || !caster.Body.Armor.Armor.Blueprint.IsArmor) || (caster.Body.Armor.Armor.Blueprint.ProficiencyGroup == ArmorProficiencyGroup.Light))
-                {
-                    return true;
-                }
-                return false;
-            }
-            public string GetReason()
-            {
-                return "Require light or no armor";
-            }
-        }
-
-        [ComponentName("Check Caster is Wielding a Swashbuckler Weapon")]
-        [AllowedOn(typeof(BlueprintAbility))]
-        [AllowedOn(typeof(BlueprintComponent))]
-        public class AbilityCasterSwashbucklerWeaponCheck : BlueprintComponent, IAbilityCasterChecker
-        {
-            public bool CorrectCaster(UnitEntityData caster)
-            {
-                return (isLightOrOneHandedPiercingWeapon(caster.Body.PrimaryHand.Weapon.Blueprint, caster.Descriptor) || isLightOrOneHandedPiercingWeapon(caster.Body.SecondaryHand.Weapon.Blueprint, caster.Descriptor));
-            }
-            public string GetReason()
-            {
-                return "Require light or one-handed piercing weapon";
-            }
-        }
-
-        [ComponentName("Check Caster has at least One Panache")]
-        [AllowedOn(typeof(BlueprintAbility))]
-        public class AbilityCasterHasAtLeastOnePanache : BlueprintComponent, IAbilityCasterChecker
-        {
-            private BlueprintAbilityResource resource = panache_resource;
-
-            public bool CorrectCaster(UnitEntityData caster)
-            {
-                return (caster.Descriptor.Resources.GetResourceAmount(resource) > 0);
-            }
-            public string GetReason()
-            {
-                return "Require at least 1 panache point";
-            }
-        }
-
-        [ComponentName("Check Caster is Prone")]
-        [AllowedOn(typeof(BlueprintComponent))]
-        public class AbilityCasterIsProne : BlueprintComponent, IAbilityCasterChecker
-        {
-            public bool CorrectCaster(UnitEntityData caster)
-            {
-                if (!caster.View.IsProne)
-                {
-                    return false;
-                }
-                return true;
-            }
-            public string GetReason()
-            {
-                return "Must be prone";
-            }
-        }
-
-        [ComponentName("Swashbuckler Parry and Riposte")]
-        [AllowedOn(typeof(BlueprintBuff))]
-        public class SwashbucklerParryAndRiposte : OwnedGameLogicComponent<UnitDescriptor>, IGlobalRulebookHandler<RuleAttackRoll>, IRulebookHandler<RuleAttackRoll>, IGlobalRulebookSubscriber
-        {
-            public void OnEventAboutToTrigger(RuleAttackRoll evt)
-            {
-                Main.logger.Log("Incoming attack!");
-                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < cost)
-                {
-                    return;
-                }
-                if (!evt.Weapon.Blueprint.IsMelee || evt.Parry != null || !base.Owner.Unit.IsEnemy(evt.Initiator))
-                {
-                    return;
-                }
-                if (evt.Target != base.Owner.Unit)
-                {
-                    return;
-                }
-                if (!base.Owner.Unit.IsReach(evt.Target, base.Owner.Body.PrimaryHand))
-                {
-                    return;
-                }
-                //TODO - Conditions?
-                /*
-                if (this.AttackerCondition.HasConditions)
-                {
-                    MechanicsContext maybeContext = base.Fact.MaybeContext;
-                    using ((maybeContext != null) ? maybeContext.GetDataScope(evt.Initiator) : null)
-                    {
-                        if (!this.AttackerCondition.Check(null))
-                        {
-                            return;
-                        }
-                    }
-                }
-                */
-                evt.TryParry(base.Owner.Unit, base.Owner.Body.PrimaryHand.Weapon, 0);
-                if (evt.Parry == null)
-                {
-                    return;
-                }
-                ModifiableValue additionalAttackBonus = base.Owner.Stats.AdditionalAttackBonus;
-                int num = evt.Initiator.Descriptor.State.Size - base.Owner.State.Size;
-                if (num > 0)
-                {
-                    int value = -2 * num;
-                    evt.AddTemporaryModifier(additionalAttackBonus.AddModifier(value, this, ModifierDescriptor.Penalty));
-                }
-            }
-
-            public void OnEventDidTrigger(RuleAttackRoll evt)
-            {
-                RuleAttackRoll.ParryData parry = evt.Parry;
-                if (((parry != null) ? parry.Initiator : null) != base.Owner.Unit)
-                {
-                    return;
-                }
-
-                if (!evt.Parry.IsTriggered)
-                {
-                    return;
-                }
-
-                evt.Target.Descriptor.Resources.Spend(resource, cost);
-
-                if (evt.Result == AttackResult.Parried && evt.Target.Descriptor.Resources.GetResourceAmount(resource) >= cost)
-                {
-                    Game.Instance.CombatEngagementController.ForceAttackOfOpportunity(base.Owner.Unit, evt.Initiator);
-                }
-
-                //base.Owner.RemoveFact(base.Fact); Unsure what this does in context of original parry
-
-                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
-                if (factContextOwner != null)
-                {
-                    factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
-                }
-            }
-
-            //TODO Conditions
-            public ConditionsChecker AttackerCondition;
-
-            private enum TargetType
-            {
-                Self
-            }
-
-            private BlueprintAbilityResource resource = panache_resource;
-            private int cost = 1;
-        }
-
-        public class GetUpFromProne : ContextAction
-        {
-            public override string GetCaption()
-            {
-                return "Get up from prone";
-            }
-
-            public override void RunAction()
-            {
-                var owner = this.Context.MaybeOwner;
-                if (owner == null)
-                {
-                    return;
-                };
-                owner.Descriptor.State.Prone.ShouldBeActive = false;
-                owner.Descriptor.State.Prone.Active = false;
-                owner.Descriptor.State.RemoveCondition(UnitCondition.Prone);
-                owner.Descriptor.State.Prone.Duration = TimeSpan.Zero;
-                owner.View.LeaveProneState();
-                owner.View.AnimationManager.StandUpImmediately();
-            }
-        }
-
-        [AllowMultipleComponents]
-        [ComponentName("AA restriction unit prone")]
-        public class RestrictionHasUnitProne : ActivatableAbilityRestriction
-        {
-            public override bool IsAvailable()
-            {
-                return base.Owner.Unit.View.IsProne;
-            }
-        }
-
-        [ComponentName("Intimidate on hit if owner has panache")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class IndimidateOnHitWithSwashbucklerWeapon : RuleInitiatorLogicComponent<RuleAttackRoll>
-        {
-            private BlueprintAbilityResource resource = panache_resource;
-            private int need_resource = 1;
-            public GameAction demoralize_action;
-
-            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
-            {
-            }
-            public override void OnEventDidTrigger(RuleAttackRoll evt)
-            {
-                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                {
-                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
-                    return;
-                }
-
-                if (evt.Initiator.CombatState.Cooldown.SwiftAction != 0.0f)
-                {
-                    Main.logger.Log("Swift action on Cooldown");
-                    return;
-                }
-
-                Main.logger.Log("Cooldown was " + evt.Initiator.CombatState.Cooldown.SwiftAction);
-
-                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
-                {
-                    return;
-                }
-
-                if (!evt.IsHit)
-                {
-                    return;
-                }
-
-                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
-                if (factContextOwner != null)
-                {
-                    evt.Initiator.CombatState.Cooldown.SwiftAction = 6.0f;
-                    factContextOwner.RunActionInContext(Helpers.CreateActionList(demoralize_action), evt.Target);
-                }
-            }
-        }
-
-        [ComponentName("Add bonus precision damage on swashbuckler weapons")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class AddBonusPrecisionDamageToSwashbucklerWeapons : RuleInitiatorLogicComponent<RuleAttackRoll>
-        {
-            private BlueprintAbilityResource resource = panache_resource;
-            private int need_resource = 1;
-            public bool is_passive;
-
-            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
-            {
-                if (is_passive && evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                {
-                    Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
-                    return;
-                }
-
-                ItemEntityWeapon weapon = evt.Weapon;
-                bool flag = isLightOrOneHandedPiercingWeapon(weapon.Blueprint, evt.Initiator.Descriptor);
-                bool flag2 = base.Owner.Body.SecondaryHand.HasWeapon && base.Owner.Body.SecondaryHand.MaybeWeapon != base.Owner.Body.EmptyHandWeapon;
-                bool flag3 = base.Owner.Body.SecondaryHand.HasShield;
-                if (flag3)
-                {
-                    ArmorProficiencyGroup proficiencyGroup = base.Owner.Body.SecondaryHand.MaybeShield.Blueprint.Type.ProficiencyGroup;
-                    flag3 = !(proficiencyGroup == ArmorProficiencyGroup.Buckler);
-                }
-                if (flag && !flag2 && !flag3)
-                {
-                    evt.PreciseStrike += base.Owner.Progression.GetClassLevel(swashbuckler_class);
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleAttackRoll evt)
-            {
-                if (is_passive)
-                {
-                    return;
-                }
-                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
-                if (factContextOwner != null)
-                {
-                    factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
-                }
-            }
-        }
-
-        public class DisarmTarget : ContextAction
-        {
-            public override string GetCaption()
-            {
-                return "Disarm target";
-            }
-
-            public override void RunAction()
-            {
-                if (base.Target.Unit == null)
-                {
-                    return;
-                }
-
-                ItemEntityWeapon maybeWeapon = base.Target.Unit.Body.PrimaryHand.MaybeWeapon;
-                ItemEntityWeapon maybeWeapon2 = base.Target.Unit.Body.SecondaryHand.MaybeWeapon;
-                if (maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural)
-                {
-                    base.Target.Unit.Descriptor.AddBuff(BlueprintRoot.Instance.SystemMechanics.DisarmMainHandBuff, this.Context, TimeSpanExtension.Seconds(6));
-                }
-                else if (maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural)
-                {
-                    this.Target.Unit.Descriptor.AddBuff(BlueprintRoot.Instance.SystemMechanics.DisarmOffHandBuff, this.Context, TimeSpanExtension.Seconds(6));
-                }
-            }
-        }
-
-        public class SpendPanache : ContextAction
-        {
-            private static BlueprintAbilityResource resource = panache_resource;
-            public int amount;
-
-            public override string GetCaption()
-            {
-                return "Spend Panache";
-            }
-
-            public override void RunAction()
-            {
-                var owner = this.Context.MaybeOwner;
-                if (owner == null)
-                {
-                    return;
-                };
-                owner.Descriptor.Resources.Spend(resource, amount);
-            }
-        }
-
-        [ComponentName("Delivery ability with a weapon hit")]
-        [AllowedOn(typeof(BlueprintAbility))]
-        public class AbilityDeliverHitWithMeleeWeapon : AbilityDeliverEffect
-        {
-            public override IEnumerator<AbilityDeliveryTarget> Deliver(AbilityExecutionContext context, TargetWrapper target)
-            {
-                UnitEntityData caster = context.MaybeCaster;
-                if (caster == null)
-                {
-                    UberDebug.LogError("Caster is missing", Array.Empty<object>());
-                    yield break;
-                }
-
-                RulebookEventContext rulebookContext = context.RulebookContext;
-                RuleAttackWithWeapon attackWithWeapon = (rulebookContext != null) ? rulebookContext.AllEvents.LastOfType<RuleAttackWithWeapon>() : null;
-                RuleAttackWithWeapon ruleAttackWithWeapon = attackWithWeapon;
-                RuleAttackRoll attackRoll = (ruleAttackWithWeapon != null) ? ruleAttackWithWeapon.AttackRoll : null;
-                attackRoll = (attackRoll ?? context.TriggerRule<RuleAttackRoll>(new RuleAttackRoll(caster, target.Unit, caster.GetFirstWeapon(), 0)));
-                if (attackWithWeapon == null)
-                {
-                    attackRoll.ConsumeMirrorImageIfNecessary();
-                }
-                yield return new AbilityDeliveryTarget(target)
-                {
-                    AttackRoll = attackRoll
-                };
-                yield break;
-            }
-        }
-
-        [ComponentName("Check Target is not Immune to Precision Damage")]
-        [AllowedOn(typeof(BlueprintComponent))]
-        public class AbilityTargetNotImmuneToPrecision : BlueprintComponent, IAbilityTargetChecker
-        {
-            public bool CanTarget(UnitEntityData caster, TargetWrapper target)
-            {
-                UnitEntityData unit = target.Unit;
-                if (unit == null)
-                {
-                    return false;
-                }
-
-
-                if (target.Unit.Descriptor.Progression.Features.Enumerable.Any(f => f.Blueprint.GetComponent<AddImmunityToPrecisionDamage>() != null) || target.Unit.Descriptor.Buffs.Enumerable.Any(f => f.Blueprint.GetComponent<AddImmunityToPrecisionDamage>() != null))
-                {
-                    return false;
-                }
-
-                return true;
-            }
-        }
-
-        public class AbilityDeliverAttackWithWeaponOnHit : AbilityDeliverEffect
-        {
-            public override IEnumerator<AbilityDeliveryTarget> Deliver(AbilityExecutionContext context, TargetWrapper target)
-            {
-                if (target.Unit == null)
-                {
-                    UberDebug.LogError("Target unit is missing", Array.Empty<object>());
-                    yield break;
-                }
-                UnitAttack cmd = new UnitAttack(target.Unit)
-                {
-                    IsSingleAttack = true
-                };
-                cmd.Init(context.Caster);
-                cmd.Start();
-                AttackHandInfo attackHandInfo = cmd.AllAttacks.FirstOrDefault<AttackHandInfo>();
-                ItemEntityWeapon weapon = (attackHandInfo != null) ? attackHandInfo.Weapon : null;
-                if (weapon == null)
-                {
-                    UberDebug.LogError("Has no weapon for attack", Array.Empty<object>());
-                    cmd.Interrupt();
-                    yield break;
-                }
-                bool hitHandled = false;
-                bool isMelee = weapon.Blueprint.IsMelee;
-                for (; ; )
-                {
-                    if (cmd.IsFinished)
-                    {
-                        RuleAttackWithWeapon lastAttackRule = cmd.LastAttackRule;
-                        if (((lastAttackRule != null) ? lastAttackRule.Projectile : null) == null || cmd.LastAttackRule.Projectile.IsHit || cmd.LastAttackRule.Projectile.Cleared || cmd.LastAttackRule.Projectile.Destroyed)
-                        {
-                            break;
-                        }
-                    }
-                    bool wasActed = cmd.IsActed;
-                    if (!cmd.IsFinished)
-                    {
-                        cmd.Tick();
-                    }
-                    RuleAttackWithWeapon lastAttackRule2 = cmd.LastAttackRule;
-                    if (!wasActed && cmd.IsActed && isMelee)
-                    {
-                        hitHandled = true;
-                        if (lastAttackRule2.AttackRoll.IsHit)
-                        {
-                            yield return new AbilityDeliveryTarget(target);
-                        }
-                    }
-                    yield return null;
-                }
-                if (!hitHandled && !isMelee)
-                {
-                    RuleAttackWithWeapon lastAttackRule3 = cmd.LastAttackRule;
-                    bool? flag3 = (lastAttackRule3 != null) ? new bool?(lastAttackRule3.AttackRoll.IsHit) : null;
-                    if (flag3 != null && flag3.Value)
-                    {
-                        yield return new AbilityDeliveryTarget(target);
-                    }
-                }
-                yield break;
-            }
-        }
-
-        [ComponentName("Add bonus bleed damage on swashbuckler weapons")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class ApplySwashbucklerBleedOnHit : RuleInitiatorLogicComponent<RuleAttackRoll>
-        {
-            private BlueprintAbilityResource resource = panache_resource;
-            public ActionList Action;
-            public int need_resource;
-
-            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
-            {
-            }
-
-            public override void OnEventDidTrigger(RuleAttackRoll evt)
-            {
-                if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
-                {
-                    return;
-                }
-
-                if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
-                {
-                    return;
-                }
-
-                if (evt.ImmuneToSneakAttack)
-                {
-                    return;
-                }
-
-                if (!evt.IsHit)
-                {
-                    return;
-                }
-
-                evt.Initiator.Descriptor.Resources.Spend(resource, need_resource);
-
-                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
-                if (factContextOwner != null)
-                {
-                    factContextOwner.RunActionInContext(this.Action, evt.Target);
-                }
-            }
-        }
-
-        [ComponentName("Immune to Disarm against Swashbuckler Weapons")]
-        public class SwashbucklerWeaponDisarmImmune : RuleTargetLogicComponent<RuleCombatManeuver>
-        {
-            private BlueprintAbilityResource resource = panache_resource;
-            private int amount = 1;
-
-            public override void OnEventAboutToTrigger(RuleCombatManeuver evt)
-            {
-                if (!(evt.Type == CombatManeuver.Disarm))
-                {
-                    return;
-                }
-
-                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < amount)
-                {
-                    return;
-                }
-
-                ItemEntityWeapon maybeWeapon = evt.Target.Body.PrimaryHand.MaybeWeapon;
-                ItemEntityWeapon maybeWeapon2 = evt.Target.Body.SecondaryHand.MaybeWeapon;
-                if ((maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
-                {
-                    evt.AutoFailure = true;
-                }
-                else if ((maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
-                {
-                    evt.AutoFailure = true;
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleCombatManeuver evt)
-            {
-            }
-        }
-
-        [ComponentName("Resolve Attack against Touch AC")]
-        [AllowedOn(typeof(BlueprintBuff))]
-        public class AttackTargetsTouchAC : RuleInitiatorLogicComponent<RuleAttackRoll>
-        {
-            public override void OnEventAboutToTrigger(RuleAttackRoll evt)
-            {
-                evt.AttackType = AttackType.Touch;
-            }
-
-            public override void OnEventDidTrigger(RuleAttackRoll evt)
-            {
-            }
-        }
-
-        [ComponentName("Ignore all DR")]
-        [AllowedOn(typeof(BlueprintBuff))]
-        public class IgnoreAllDR : RuleInitiatorLogicComponent<RuleDealDamage>
-        {
-            public override void OnEventAboutToTrigger(RuleDealDamage evt)
-            {
-                foreach (BaseDamage baseDamage in evt.DamageBundle)
-                {
-                    baseDamage.IgnoreReduction = true;
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleDealDamage evt)
-            {
-                IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;
-                if (factContextOwner != null)
-                {
-                    factContextOwner.RunActionInContext(CreateActionList(Create<ContextActionRemoveSelf>()), evt.Initiator);
-                }
-            }
-        }
-
-        [ComponentName("Go to 1 HP when Incoming Damage Would Reduce to 0")]
-        [AllowedOn(typeof(BlueprintBuff))]
-        public class ReduceIncomingKillingBlow : RuleTargetLogicComponent<RuleDealDamage>
-        {
-            private static BlueprintAbilityResource resource = panache_resource;
-
-            public override void OnEventAboutToTrigger(RuleDealDamage evt)
-            {
-            }
-
-            public override void OnEventDidTrigger(RuleDealDamage evt)
-            {
-                if (evt.Target.Damage < 0)
-                {
-                    Main.logger.Log(evt.Target.Damage + " is less than zero.");
-                    return;
-                }
-
-                if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < 1)
-                {
-                    Main.logger.Log("Not enough Panache.");
-                    return;
-                }
-
-                int max_need_reduce = 1 - evt.Target.HPLeft;
-                int reduce_damage = Math.Min(max_need_reduce, evt.Target.Damage);
-                if (reduce_damage <= 0)
-                {
-                    return;
-                }
-
-                var consume_amount = evt.Target.Descriptor.Resources.GetResourceAmount(resource);
-                evt.Target.Descriptor.Resources.Spend(resource, consume_amount);
-
-                evt.Target.Damage -= reduce_damage;
-            }
-        }
-
-        [ComponentName("Restore Panache on Kill and Crit")]
-        public class RestorePanacheAttackRollTrigger : GameLogicComponent, IInitiatorRulebookHandler<RuleAttackWithWeapon>, IInitiatorRulebookHandler<RuleAttackWithWeaponResolve>, IRulebookHandler<RuleAttackWithWeapon>, IInitiatorRulebookSubscriber, IRulebookHandler<RuleAttackWithWeaponResolve>
-        {
-            public void OnEventAboutToTrigger(RuleAttackWithWeapon evt)
-            {
-            }
-
-            public void OnEventDidTrigger(RuleAttackWithWeapon evt)
-            {
-                if (!this.WaitForAttackResolve)
-                {
-                    this.TryRunActions(evt);
-                }
-            }
-
-            public void OnEventAboutToTrigger(RuleAttackWithWeaponResolve evt)
-            {
-            }
-
-            public void OnEventDidTrigger(RuleAttackWithWeaponResolve evt)
-            {
-                if (this.WaitForAttackResolve)
-                {
-                    this.TryRunActions(evt.AttackWithWeapon);
-                }
-            }
-
-            private void TryRunActions(RuleAttackWithWeapon rule)
-            {
-                if (this.CheckCondition(rule) && this.CheckValidTarget(rule))
-                {
-                    using (new ContextAttackData(rule.AttackRoll, null))
-                    {
-                        IFactContextOwner factContextOwner2 = base.Fact as IFactContextOwner;
-                        if (factContextOwner2 != null)
-                        {
-                            factContextOwner2.RunActionInContext(this.Action, rule.Initiator);
-                        }
-                    }
-                }
-            }
-
-            private bool CheckCondition(RuleAttackWithWeapon evt)
-            {
-                ItemEnchantment itemEnchantment = base.Fact as ItemEnchantment;
-                ItemEntity itemEntity = (itemEnchantment != null) ? itemEnchantment.Owner : null;
-                if (itemEntity != null && itemEntity != evt.Weapon)
-                {
-                    return false;
-                }
-                if (this.CriticalHit && (!evt.AttackRoll.IsCriticalConfirmed || evt.AttackRoll.FortificationNegatesCriticalHit))
-                {
-                    return false;
-                }
-                if (this.ReduceHPToZero)
-                {
-                    return evt.MeleeDamage != null && !evt.MeleeDamage.IsFake && evt.Target.HPLeft <= 0 && evt.Target.HPLeft + evt.MeleeDamage.Damage > 0;
-                }
-                bool flag = evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.Light) || evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (evt.Initiator.Descriptor.State.Features.DuelingMastery && evt.Weapon.Blueprint.Category == WeaponCategory.DuelingSword) || evt.Initiator.Descriptor.Ensure<DamageGracePart>().HasEntry(evt.Weapon.Blueprint.Category);
-                return !this.DuelistWeapon || flag;
-            }
-
-            private bool CheckValidTarget(RuleAttackWithWeapon evt)
-            {
-                if (evt.Target.Descriptor.Progression.CharacterLevel < (evt.Initiator.Descriptor.Progression.CharacterLevel / 2))
-                {
-                    return false;
-                }
-                if (evt.Target.Descriptor.State.IsHelpless || evt.Target.Descriptor.State.IsUnconscious)
-                {
-                    return false;
-                }
-                if (CriticalHit && evt.Initiator.Descriptor.HasFact(deadly_stab_buff))
-                {
-                    return false;
-                }
-                return true;
-            }
-
-            private BlueprintBuff deadly_stab_buff = library.Get<BlueprintBuff>("ec409f2a917441378d5878ed37593834");
-            
-            public bool WaitForAttackResolve;
-
-            public bool CriticalHit;
-
-            public bool ReduceHPToZero;
-
-            private bool DuelistWeapon = true;
-
-            private ActionList Action = CreateActionList(restore_panache);
-        }
-
-        [ComponentName("Replace attack stat for swashbuckler weapon")]
-        [AllowedOn(typeof(BlueprintUnitFact))]
-        public class AttackStatReplacementForSwashbucklerWeapon : RuleInitiatorLogicComponent<RuleCalculateAttackBonusWithoutTarget>
-        {
-            private StatType ReplacementStat = StatType.Dexterity;
-
-            public override void OnEventAboutToTrigger(RuleCalculateAttackBonusWithoutTarget evt)
-            {
-                ModifiableValueAttributeStat stat1 = this.Owner.Stats.GetStat(evt.AttackBonusStat) as ModifiableValueAttributeStat;
-                ModifiableValueAttributeStat stat2 = this.Owner.Stats.GetStat(this.ReplacementStat) as ModifiableValueAttributeStat;
-                bool flag = stat2 != null && stat1 != null && stat2.Bonus >= stat1.Bonus;
-
-                if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
-                {
-                    evt.AttackBonusStat = this.ReplacementStat;
-                }
-            }
-
-            public override void OnEventDidTrigger(RuleCalculateAttackBonusWithoutTarget evt)
-            {
-            }
         }
     }
 }

@@ -87,10 +87,27 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Classes\Swashbuckler.cs" />
-    <Compile Include="Components\Components.cs" />
+    <Compile Include="Components\AbilityDeliver.cs" />
+    <Compile Include="Components\BleedingWound.cs" />
+    <Compile Include="Components\CasterCheck.cs" />
+    <Compile Include="Components\CheatDeath.cs" />
+    <Compile Include="Components\DerringDo.cs" />
+    <Compile Include="Components\DizzyingDefence.cs" />
+    <Compile Include="Components\DodgingPanache.cs" />
     <Compile Include="Components\EvasiveLogic.cs" />
     <Compile Include="Components\Extensions.cs" />
     <Compile Include="Components\IResourceHandler.cs" />
+    <Compile Include="Components\KipUp.cs" />
+    <Compile Include="Components\MenacingSwordplay.cs" />
+    <Compile Include="Components\Nimble.cs" />
+    <Compile Include="Components\Panache.cs" />
+    <Compile Include="Components\ParryAndRiposte.cs" />
+    <Compile Include="Components\PerfectThrust.cs" />
+    <Compile Include="Components\PreciseStrike.cs" />
+    <Compile Include="Components\SubtleBlade.cs" />
+    <Compile Include="Components\SwashbucklerInitiative.cs" />
+    <Compile Include="Components\SwashbucklerWeaponCalculations.cs" />
+    <Compile Include="Components\TargetedStrike.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
