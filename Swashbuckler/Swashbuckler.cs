@@ -161,11 +161,10 @@ namespace Derring_Do
             swashbuckler_class.Progression = swashbuckler_progression;
 
             // TODO: Archetypes
-
-            // TODO: Feats
-
             swashbuckler_class.Archetypes = new BlueprintArchetype[] { };
             RegisterClass(swashbuckler_class);
+
+            SwashbucklerFeats.createFeats();
         }
 
         static BlueprintCharacterClass[] getSwashbucklerArray()

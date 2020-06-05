@@ -86,7 +86,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Classes\Swashbuckler.cs" />
+    <Compile Include="Swashbuckler\Swashbuckler.cs" />
     <Compile Include="Components\AbilityDeliver.cs" />
     <Compile Include="Components\BleedingWound.cs" />
     <Compile Include="Components\CasterCheck.cs" />
@@ -110,6 +110,7 @@
     <Compile Include="Components\TargetedStrike.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Swashbuckler\SwashbucklerFeats.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
