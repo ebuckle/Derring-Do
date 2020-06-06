@@ -1,0 +1,11 @@
+{
+	"Id": "DerringDo",
+	"DisplayName": "Derring-Do",
+	"Author": "Eddie",
+	"Version": "1.0.0",
+	"ManagerVersion": "0.13.0",
+	"Requirements": ["CallOfTheWild"],
+	"LoadAfter": ["CallOfTheWild"],
+	"AssemblyName": "Derring-Do.dll",
+	"EntryMethod": "Derring_Do.Main.Load"
+}
