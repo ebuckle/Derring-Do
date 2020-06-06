@@ -34,7 +34,7 @@ namespace Derring_Do
             }
 
             ItemEntityWeapon weapon = evt.Weapon;
-            bool flag = isLightOrOneHandedPiercingWeapon(weapon.Blueprint, evt.Initiator.Descriptor);
+            bool flag = isSwashbucklerWeapon(weapon.Blueprint, evt.Initiator.Descriptor);
             bool flag2 = base.Owner.Body.SecondaryHand.HasWeapon && base.Owner.Body.SecondaryHand.MaybeWeapon != base.Owner.Body.EmptyHandWeapon;
             bool flag3 = base.Owner.Body.SecondaryHand.HasShield;
             if (flag3)

@@ -160,9 +160,11 @@ namespace Derring_Do
             createSwashbucklerProgression();
             swashbuckler_class.Progression = swashbuckler_progression;
 
-            // TODO: Archetypes
-            swashbuckler_class.Archetypes = new BlueprintArchetype[] { };
             RegisterClass(swashbuckler_class);
+
+            // TODO: Archetypes
+            InspiredBlade.create();
+            swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade };
 
             SwashbucklerFeats.createFeats();
         }
@@ -1273,6 +1275,7 @@ namespace Derring_Do
 
         static void createStunningStab()
         {
+            var arcane_weapon_bane = library.Get<BlueprintBuff>("6feb12345b4ca924488029c2a695ea75");
             var stunned_buff = library.Get<BlueprintBuff>("09d39b38bb7c6014394b6daced9bacd3");
             var effect_action = Helpers.CreateActionList(Common.createContextSavedApplyBuff(stunned_buff, Helpers.CreateContextDuration(Common.createSimpleContextValue(1))));
             var action = Helpers.CreateActionList(Common.createContextActionSavingThrow(SavingThrowType.Fortitude, effect_action), Create<SpendPanache>(s => { s.amount = 2; s.resource = panache_resource; }));
@@ -1281,7 +1284,7 @@ namespace Derring_Do
                                                 "Stunning Stab",
                                                 "At 19th level, when a swashbuckler hits a creature with a light or one-handed piercing melee weapon, she can spend 2 panache points to stun the creature for 1 round. The creature must succeed at a Fortitude saving throw (DC = 10 + 1/2 the swashbuckler’s level + the swashbuckler’s Dexterity modifier) or be stunned for 1 round. Creatures that are immune to critical hits are also immune to this effect.",
                                                 "0dd0384bdc5d46e8842569b0cf6810b8",
-                                                stunned_buff.Icon,
+                                                arcane_weapon_bane.Icon,
                                                 null,
                                                 Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.Action = action; a.OnlyHit = true; a.DuelistWeapon = true; }),
                                                 Common.createContextCalculateAbilityParamsBasedOnClass(swashbuckler_class, StatType.Dexterity)

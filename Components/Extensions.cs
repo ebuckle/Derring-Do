@@ -7,7 +7,7 @@ namespace Derring_Do
 {
     public static partial class Extensions
     {
-        public static bool isLightOrOneHandedPiercingWeapon(BlueprintItemWeapon weapon, UnitDescriptor wielder)
+        public static bool isSwashbucklerWeapon(BlueprintItemWeapon weapon, UnitDescriptor wielder)
         {
             // Identical check for Duelist weapons
             if (weapon.Category.HasSubCategory(WeaponSubCategory.Light) || weapon.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (wielder.State.Features.DuelingMastery && weapon.Category == WeaponCategory.DuelingSword) || wielder.Ensure<DamageGracePart>().HasEntry(weapon.Category))
