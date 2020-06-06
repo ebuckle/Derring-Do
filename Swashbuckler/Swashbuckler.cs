@@ -111,7 +111,7 @@ namespace Derring_Do
 
         internal static void createSwashbucklerClass()
         {
-            
+            Main.DebugLog("Creating Swashbuckler class");
             var duelist_class = GetClass("4e0ea99612ae87a499c7fb0588e31828");
             var fighter_class = GetClass("48ac8db94d5de7645906c7d0ad3bcfbd");
             var magus_class = GetClass("45a4607686d96a1498891b3286121780");

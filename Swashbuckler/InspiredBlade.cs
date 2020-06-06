@@ -50,6 +50,7 @@ namespace Derring_Do
 
         static public void create()
         {
+            Main.DebugLog("Creating Inspired Blade archetype");
             inspired_blade = Helpers.Create<BlueprintArchetype>(a =>
             {
                 a.name = "InspiredBladeArchetype";

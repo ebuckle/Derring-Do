@@ -35,24 +35,20 @@ namespace Derring_Do
 
         public override void OnEventAboutToTrigger(RuleAttackWithWeapon evt)
         {
-            Main.logger.Log("About to be attacked");
             if (!evt.Weapon.Blueprint.IsMelee)
             {
-                Main.logger.Log("Attack was not with a melee weapon");
                 return;
             }
             will_spend = 0;
             int need_resource = getResourceCost(evt);
             if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
             {
-                Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
                 return;
             }
 
             will_spend = need_resource;
 
             bonus = Owner.Stats.Charisma.Bonus > 0 ? Owner.Stats.Charisma.Bonus : 0;
-            Main.logger.Log("Adding bonus of " + bonus + " to AC");
             evt.AddTemporaryModifier(evt.Target.Stats.AC.AddModifier(bonus, this, ModifierDescriptor.Dodge));
         }
 
@@ -60,7 +56,6 @@ namespace Derring_Do
         {
             if (will_spend > 0)
             {
-                Main.logger.Log("Spending " + will_spend + " panache");
                 evt.Target.Descriptor.Resources.Spend(resource, will_spend);
             }
             IFactContextOwner factContextOwner = base.Fact as IFactContextOwner;

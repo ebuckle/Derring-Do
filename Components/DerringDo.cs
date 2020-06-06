@@ -34,17 +34,14 @@ namespace Derring_Do
             RuleRollDice rule = new RuleRollDice(evt.Initiator, dice_formula);
             int roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
             total += roll;
-            Main.logger.Log("Roll 1 was a " + roll);
             if (roll == 6)
             {
-                Main.logger.Log("Exploding!");
                 int attempts = Owner.Stats.Dexterity.Bonus > 0 ? Owner.Stats.Dexterity.Bonus : 1;
                 for (int x = 0; x < attempts; x++)
                 {
                     rule = new RuleRollDice(evt.Initiator, dice_formula);
                     roll = this.Fact.MaybeContext.TriggerRule<RuleRollDice>(rule).Result;
                     total += roll;
-                    Main.logger.Log("Extra attempt " + x + " was a " + roll);
                     if (roll != 6)
                     {
                         break;
@@ -73,7 +70,6 @@ namespace Derring_Do
             will_spend = need_resource;
 
             int result = calculateExplodingDice(evt);
-            Main.logger.Log("Adding bonus of " + result + " to check");
             evt.Bonus.AddModifier(result, this, ModifierDescriptor.UntypedStackable);
         }
 

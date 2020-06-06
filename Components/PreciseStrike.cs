@@ -29,7 +29,6 @@ namespace Derring_Do
         {
             if (is_passive && evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
             {
-                Main.logger.Log("Not enough resource - had " + evt.Target.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
                 return;
             }
 
