@@ -20,6 +20,7 @@ using Kingmaker.RuleSystem;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
@@ -57,7 +58,6 @@ namespace Derring_Do
 
         static public BlueprintFeature swashbuckler_fighter_feat_prerequisite_replacement;
 
-        //TODO - TWEAK CHA SWAP TO JUST BE FOR COMBAT FEATS
         static public BlueprintFeature swashbuckler_finesse;
 
         static public BlueprintFeature charmed_life;
@@ -162,7 +162,6 @@ namespace Derring_Do
 
             RegisterClass(swashbuckler_class);
 
-            // TODO: Archetypes
             InspiredBlade.create();
             swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade };
 
@@ -1058,11 +1057,13 @@ namespace Derring_Do
 
         static void createSubtleBlade()
         {
+            var magus_feats = library.Get<BlueprintFeatureSelection>("66befe7b24c42dd458952e3c47c93563");
+
             subtle_blade_deed = CreateFeature("SubtleBladeSwashbucklerFeature",
                                               "Subtle Blade",
                                               "At 11th level, while a swashbuckler has at least 1 panache point, she is immune to disarm combat maneuvers made against a light or one-handed piercing melee weapon she is wielding.",
                                               "987932d860cf432fae1d9ead0e9a11d1",
-                                              null,
+                                              magus_feats.Icon,
                                               FeatureGroup.None,
                                               Create<SwashbucklerWeaponDisarmImmune>(s => s.resource = panache_resource)
                                               );
@@ -1089,27 +1090,28 @@ namespace Derring_Do
                                                    null
                                                    );
 
-            var dizzying_defence_toggle = Helpers.CreateActivatableAbility("DizzyingDefenceSwashbucklerActivatableAbility",
-                                                                           dizzying_defence_deed.Name,
-                                                                           dizzying_defence_deed.Description,
-                                                                           "34bcda568152458abd30c30bc5dcda47",
-                                                                           dizzying_defence_deed.Icon,
-                                                                           dizzying_defence_buff,
-                                                                           AbilityActivationType.Immediately,
-                                                                           CommandType.Free,
-                                                                           null,
-                                                                           CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
-                                                                           );
-            dizzying_defence_toggle.DeactivateImmediately = true;
+            var dizzying_defence_ability = CreateAbility("DizzyingDefenceSwashbucklerAbility",
+                                                         dizzying_defence_deed.Name,
+                                                         dizzying_defence_deed.Description,
+                                                         "ef0929752a90432e99f34d7e5589f99b",
+                                                         dizzying_defence_deed.Icon,
+                                                         AbilityType.Extraordinary,
+                                                         CommandType.Swift,
+                                                         AbilityRange.Weapon,
+                                                         "",
+                                                         "",
+                                                         Create<AbilityCasterSwashbucklerWeaponCheck>(),
+                                                         Create<AttackAnimation>(),
+                                                         Create<AbilityCasterHasNoFacts>(a => a.Facts = new BlueprintUnitFact[] { fight_defensively_buff }),
+                                                         CreateRunActions(Common.createContextActionOnContextCaster(Common.createContextActionApplyBuff(dizzying_defence_buff, CreateContextDuration(1), dispellable: false)),
+                                                                          Common.createContextActionAttack(),
+                                                                          Common.createContextActionApplyBuffToCaster(fight_defensively_buff, CreateContextDuration(1), dispellable: false)),
+                                                         Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
+                                                         );
+            dizzying_defence_ability.setMiscAbilityParametersTouchHarmful(works_on_allies: false);
+            dizzying_defence_ability.NeedEquipWeapons = true;
 
-            dizzying_defence_deed.AddComponent(Helpers.CreateAddFact(dizzying_defence_toggle));
-
-            var actions = fight_defensively_buff.GetComponent<AddFactContextActions>();
-            var conditional = Helpers.CreateConditional(Common.createContextConditionCasterHasFact(dizzying_defence_buff),
-                                                        Common.createContextActionSpendResource(panache_resource, 1)
-                                                        );
-            var new_actions = CallOfTheWild.ExtensionMethods.AddToArray(actions.Activated.Actions, conditional);
-            actions.Activated.Actions = new_actions;
+            dizzying_defence_deed.AddComponent(Helpers.CreateAddFact(dizzying_defence_ability));
 
             var fight_defensively_ac = library.Get<BlueprintUnitProperty>("fdf1a37b3173b4c41a6062515f754202");
             var array = fight_defensively_ac.GetComponent<FightingDefensivelyACBonusProperty>().Features;
@@ -1311,46 +1313,6 @@ namespace Derring_Do
                                                FeatureGroup.None,
                                                Helpers.CreateAddFact(stunning_stab_toggle)
                                                );
-        }
-
-        static void createDummyConsumePanache()
-        {
-            var CONSUME_PANACHE_DUMMY_ABILITY = CreateAbility("DUMMYCONSUMEPANACHEABILITY",
-                                                              "CONSUME PANACHE",
-                                                              "CONSUME 1 PANACHE - TESTING ONLY",
-                                                              "bf8adf354ae947338247ed22f334a671",
-                                                              null,
-                                                              AbilityType.Extraordinary,
-                                                              CommandType.Free,
-                                                              AbilityRange.Personal,
-                                                              "",
-                                                              "",
-                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; })
-                                                              );
-
-            var REGAIN_PANACHE_DUMMY_ABILITY = CreateAbility("DUMMYREGAINPANACHEABILITY",
-                                                             "REGAIN PANACHE",
-                                                             "REGAIN 1 PANACHE - TESTING ONLY",
-                                                             "eae08c25bbdf46918b0570e7094c0fdf",
-                                                             null,
-                                                             AbilityType.Extraordinary,
-                                                             CommandType.Free,
-                                                             AbilityRange.Personal,
-                                                             "",
-                                                             "",
-                                                             CreateRunActions(restore_panache)
-                                                             );
-
-            CONSUME_PANACHE_DUMMY = CreateFeature("DUMMYCONSUMEPANACHEFEATURE",
-                                                  "CONSUME PANACHE",
-                                                  "CONSUME 1 PANACHE - TESTING ONLY",
-                                                  "a04d66b87034493f8391f1e0614004f9",
-                                                  null,
-                                                  FeatureGroup.None,
-                                                  Helpers.CreateAddFact(CONSUME_PANACHE_DUMMY_ABILITY),
-                                                  Helpers.CreateAddFact(REGAIN_PANACHE_DUMMY_ABILITY),
-                                                  CallOfTheWild.Helpers.CreateAddAbilityResource(panache_resource)
-                                                  );
         }
     }
 }
