@@ -25,11 +25,11 @@ namespace Derring_Do
 
             ItemEntityWeapon maybeWeapon = evt.Target.Body.PrimaryHand.MaybeWeapon;
             ItemEntityWeapon maybeWeapon2 = evt.Target.Body.SecondaryHand.MaybeWeapon;
-            if ((maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
+            if ((maybeWeapon != null && !maybeWeapon.Blueprint.IsUnarmed && !maybeWeapon.Blueprint.IsNatural) && isSwashbucklerWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
             {
                 evt.AutoFailure = true;
             }
-            else if ((maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural) && isLightOrOneHandedPiercingWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
+            else if ((maybeWeapon2 != null && !maybeWeapon2.Blueprint.IsUnarmed && !maybeWeapon2.Blueprint.IsNatural) && isSwashbucklerWeapon(maybeWeapon.Blueprint, evt.Target.Descriptor))
             {
                 evt.AutoFailure = true;
             }

@@ -13,11 +13,11 @@ namespace Derring_Do
     {
         public bool CorrectCaster(UnitEntityData caster)
         {
-            return (isLightOrOneHandedPiercingWeapon(caster.Body.PrimaryHand.Weapon.Blueprint, caster.Descriptor) || isLightOrOneHandedPiercingWeapon(caster.Body.SecondaryHand.Weapon.Blueprint, caster.Descriptor));
+            return (isSwashbucklerWeapon(caster.Body.PrimaryHand.Weapon.Blueprint, caster.Descriptor) || isSwashbucklerWeapon(caster.Body.SecondaryHand.Weapon.Blueprint, caster.Descriptor));
         }
         public string GetReason()
         {
-            return "Require light or one-handed piercing weapon";
+            return "Invalid weapon";
         }
     }
 

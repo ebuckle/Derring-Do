@@ -25,7 +25,7 @@ namespace Derring_Do
             ModifiableValueAttributeStat stat2 = this.Owner.Stats.GetStat(this.ReplacementStat) as ModifiableValueAttributeStat;
             bool flag = stat2 != null && stat1 != null && stat2.Bonus >= stat1.Bonus;
 
-            if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            if (isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
             {
                 evt.AttackBonusStat = this.ReplacementStat;
             }
@@ -42,7 +42,7 @@ namespace Derring_Do
     {
         public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
         {
-            if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            if (evt.Weapon != null && isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
             {
                 evt.DoubleCriticalEdge = true;
             }
@@ -59,7 +59,7 @@ namespace Derring_Do
     {
         public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
         {
-            if (evt.Weapon != null && isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            if (evt.Weapon != null && isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
             {
                 evt.AdditionalCriticalMultiplier = 1;
             }
@@ -76,7 +76,7 @@ namespace Derring_Do
     {
         public override void OnEventAboutToTrigger(RuleAttackRoll evt)
         {
-            if (isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            if (isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
             {
                 evt.AutoCriticalConfirmation = true;
             }
@@ -100,7 +100,7 @@ namespace Derring_Do
                 return;
             }
 
-            if (!isLightOrOneHandedPiercingWeapon(weapon.Blueprint, __instance.Owner.Unit.Descriptor))
+            if (!isSwashbucklerWeapon(weapon.Blueprint, __instance.Owner.Unit.Descriptor))
             {
                 return;
             }

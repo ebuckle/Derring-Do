@@ -31,7 +31,7 @@ namespace Derring_Do
                 return;
             }
 
-            if (!isLightOrOneHandedPiercingWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            if (!isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
             {
                 return;
             }
