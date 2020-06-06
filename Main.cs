@@ -65,7 +65,6 @@ namespace Derring_Do
         {
             static void Postfix(LibraryScriptableObject __instance)
             {
-                logger.Log("Reached POSTFIX");
                 var self = __instance;
                 if (Main.library != null) return;
                 Main.library = self;

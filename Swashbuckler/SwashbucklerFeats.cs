@@ -18,6 +18,7 @@ namespace Derring_Do
 
         static public void createFeats()
         {
+            Main.DebugLog("Creating Feats");
             var panache = Swashbuckler.panache;
             var panache_resource = Swashbuckler.panache_resource;
 

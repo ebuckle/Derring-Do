@@ -19,13 +19,11 @@ namespace Derring_Do
         {
             if (evt.Target.Damage < 0)
             {
-                Main.logger.Log(evt.Target.Damage + " is less than zero.");
                 return;
             }
 
             if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < 1)
             {
-                Main.logger.Log("Not enough Panache.");
                 return;
             }
 

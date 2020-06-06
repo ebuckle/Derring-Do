@@ -23,16 +23,12 @@ namespace Derring_Do
 
         public override void OnEventAboutToTrigger(RuleInitiativeRoll evt)
         {
-            Main.logger.Log("About to roll initiative");
-
             int need_resource = getResourceAmount(evt);
 
             if (evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) < need_resource)
             {
-                Main.logger.Log("Not enough resource - had " + evt.Initiator.Descriptor.Resources.GetResourceAmount(resource) + " and needed " + need_resource);
                 return;
             }
-            Main.logger.Log("Adding bonus of " + bonus + " to the roll.");
             evt.AddTemporaryModifier(Owner.Stats.Initiative.AddModifier(bonus, this, ModifierDescriptor.UntypedStackable));
         }
 
