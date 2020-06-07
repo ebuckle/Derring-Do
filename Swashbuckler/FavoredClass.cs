@@ -23,9 +23,6 @@ namespace Derring_Do
             Main.DebugLog("Creating favored class bonuses");
             createBonusPanache();
             createBonusCharmedLife();
-
-            library.AddAsset(bonus_panache, bonus_panache.AssetGuid);
-            library.AddAsset(bonus_charmed_life, bonus_charmed_life.AssetGuid);
         }
 
         static void createBonusPanache()
