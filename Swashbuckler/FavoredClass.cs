@@ -1,7 +1,12 @@
 ﻿using CallOfTheWild;
+using CallOfTheWild.ResourceMechanics;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
+using Kingmaker.Blueprints.Facts;
+using Kingmaker.Designers.Mechanics.Facts;
+using Kingmaker.Enums;
 using Kingmaker.UnitLogic.FactLogic;
+using Kingmaker.UnitLogic.Mechanics.Components;
 
 namespace Derring_Do
 {
@@ -31,8 +36,10 @@ namespace Derring_Do
                                                   "89b0082da456424380b5c541f63eee41",
                                                   Swashbuckler.panache.Icon,
                                                   FeatureGroup.None,
-                                                  Helpers.Create<IncreaseResourceAmount>(i => { i.Resource = Swashbuckler.panache_resource; i.Value = 1; })
+                                                  Helpers.Create<ContextIncreaseResourceAmount>(i => { i.Resource = Swashbuckler.panache_resource; i.Value = Helpers.CreateContextValue(AbilityRankType.Default); })
                                                   );
+            bonus_panache.AddComponent(Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.FeatureRank, feature: bonus_panache));
+            bonus_panache.AddComponent(Helpers.Create<RecalculateOnFactsChange>(r => r.CheckedFacts = new BlueprintUnitFact[] { bonus_panache }));
             bonus_panache.Ranks = 5;
             bonus_panache.ReapplyOnLevelUp = true;
         }
@@ -45,8 +52,10 @@ namespace Derring_Do
                                                        "57b8c544535f40918881cf4000021a40",
                                                        Swashbuckler.charmed_life.Icon,
                                                        FeatureGroup.None,
-                                                       Helpers.Create<IncreaseResourceAmount>(i => { i.Resource = Swashbuckler.charmed_life_resource; i.Value = 1; })
+                                                       Helpers.Create<ContextIncreaseResourceAmount>(i => { i.Resource = Swashbuckler.charmed_life_resource; i.Value = Helpers.CreateContextValue(AbilityRankType.Default); })
                                                        );
+            bonus_charmed_life.AddComponent(Helpers.CreateContextRankConfig(baseValueType: ContextRankBaseValueType.FeatureRank, feature: bonus_charmed_life));
+            bonus_charmed_life.AddComponent(Helpers.Create<RecalculateOnFactsChange>(r => r.CheckedFacts = new BlueprintUnitFact[] { bonus_charmed_life }));
             bonus_charmed_life.Ranks = 5;
             bonus_charmed_life.ReapplyOnLevelUp = true;
         }
