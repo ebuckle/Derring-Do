@@ -62,6 +62,7 @@ namespace Derring_Do
         static public BlueprintFeature swashbuckler_finesse;
 
         static public BlueprintFeature charmed_life;
+        static public BlueprintAbilityResource charmed_life_resource;
 
         static public BlueprintFeature nimble_unlock;
 
@@ -167,6 +168,8 @@ namespace Derring_Do
             swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade };
 
             SwashbucklerFeats.createFeats();
+
+            FavoredClass.create();
         }
 
         static BlueprintCharacterClass[] getSwashbucklerArray()
@@ -332,7 +335,7 @@ namespace Derring_Do
         {
             var bravery = library.Get<BlueprintFeature>("f6388946f9f472f4585591b80e9f2452");
 
-            var charmed_life_resource = CreateAbilityResource("SwashbucklerCharmedLifeResource", "", "", "cdaca00ebd144d8b870390fb6a09640f", null);
+            charmed_life_resource = CreateAbilityResource("SwashbucklerCharmedLifeResource", "", "", "cdaca00ebd144d8b870390fb6a09640f", null);
             charmed_life_resource.SetIncreasedByLevelStartPlusDivStep(3, 2, 0, 4, 1, 0, 0.0f, getSwashbucklerArray());
 
             var consume_resource = Common.createContextActionSpendResource(charmed_life_resource, 1);
