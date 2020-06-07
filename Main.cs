@@ -61,6 +61,7 @@ namespace Derring_Do
 
         [Harmony12.HarmonyPatch(typeof(LibraryScriptableObject), "LoadDictionary")]
         [Harmony12.HarmonyPatch(typeof(LibraryScriptableObject), "LoadDictionary", new Type[0])]
+        [Harmony12.HarmonyAfter("ProperFlanking2")]
         static class LibraryScriptableObject_LoadDictionary_Patch
         {
             static void Postfix(LibraryScriptableObject __instance)
