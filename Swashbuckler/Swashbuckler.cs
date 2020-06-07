@@ -49,6 +49,7 @@ namespace Derring_Do
 
         static public BlueprintFeature panache;
         static public ContextRestoreResource restore_panache;
+        static public BlueprintFeature panache_gain_base;
 
         static public BlueprintAbilityResource panache_resource;
 
@@ -263,10 +264,25 @@ namespace Derring_Do
         static void createPanache()
         {
             panache_resource = CreateAbilityResource("PanacheResource", "Panache", "", "2087ab6ed0df4c8480379105bc0962a7", null);
-            panache_resource.AddComponent(Create<MinResourceAmount>(m => m.value = 1));
-            panache_resource.SetIncreasedByStat(0, StatType.Charisma);
+            panache_resource.SetFixedResource(0);
 
             restore_panache = Create<ContextRestoreResource>(c => { c.amount = 1; c.Resource = panache_resource; });
+
+            panache_gain_base = CreateFeature("PanacheGainBaseFeature",
+                                              "",
+                                              "",
+                                              "146ee6b630974781a718921fc2fa4008",
+                                              null,
+                                              FeatureGroup.None,
+                                              Create<ContextIncreaseResourceAmount>(c =>
+                                              {
+                                                  c.Value = Helpers.CreateContextValue(AbilityRankType.ProjectilesCount);
+                                                  c.Resource = panache_resource;
+                                              }),
+                                              Helpers.CreateContextRankConfig(type: AbilityRankType.ProjectilesCount, baseValueType: ContextRankBaseValueType.StatBonus, stat: StatType.Charisma, min: 1),
+                                              Helpers.Create<RecalculateOnStatChange>(r => r.Stat = StatType.Charisma)
+                                              );
+            panache_gain_base.HideInCharacterSheetAndLevelUp = true;
 
             panache = CreateFeature("PanacheFeature",
                                     "Panache",
@@ -278,7 +294,8 @@ namespace Derring_Do
                                     FeatureGroup.None,
                                     panache_resource.CreateAddAbilityResource(),
                                     Create<RestorePanacheAttackRollTrigger>(a => { a.CriticalHit = true; a.Action = CreateActionList(restore_panache); a.deadly_stab_buff = deadly_stab_buff;  }),
-                                    Create<RestorePanacheAttackRollTrigger>(a => { a.ReduceHPToZero = true; a.Action = CreateActionList(restore_panache); })
+                                    Create<RestorePanacheAttackRollTrigger>(a => { a.ReduceHPToZero = true; a.Action = CreateActionList(restore_panache); }),
+                                    CreateAddFacts(panache_gain_base)
                                     );
         }
 
@@ -888,7 +905,7 @@ namespace Derring_Do
                                                    icon,
                                                    null,
                                                    Helpers.Create<BleedBuff>(b => b.dice_value = Helpers.CreateContextDiceValue(DiceType.Zero, 0, Helpers.CreateContextValue(AbilityRankType.Default))),
-                                                   Helpers.CreateContextRankConfig(ContextRankBaseValueType.StatBonus, stat: StatType.Dexterity, min: 0),
+                                                   Helpers.CreateContextRankConfig(ContextRankBaseValueType.StatBonus, stat: StatType.Dexterity, min: 1),
                                                    Helpers.CreateSpellDescriptor(SpellDescriptor.Bleed),
                                                    bleed1d6.GetComponent<CombatStateTrigger>(),
                                                    bleed1d6.GetComponent<AddHealTrigger>()

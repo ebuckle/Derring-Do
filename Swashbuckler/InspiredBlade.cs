@@ -110,7 +110,8 @@ namespace Derring_Do
                                                  c.Resource = Swashbuckler.panache_resource;
                                              }),
                                              Helpers.CreateContextRankConfig(type: AbilityRankType.ProjectilesCount, baseValueType: ContextRankBaseValueType.StatBonus, stat: StatType.Intelligence, min: 1),
-                                             Helpers.Create<RecalculateOnStatChange>(r => r.Stat = StatType.Intelligence)
+                                             Helpers.Create<RecalculateOnStatChange>(r => r.Stat = StatType.Intelligence),
+                                             CreateAddFacts(Swashbuckler.panache_gain_base)
                                              );
         }
 
