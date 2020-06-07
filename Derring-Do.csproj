@@ -87,6 +87,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Components\InspiredStrike.cs" />
+    <Compile Include="Swashbuckler\FavoredClass.cs" />
     <Compile Include="Swashbuckler\InspiredBlade.cs" />
     <Compile Include="Swashbuckler\Swashbuckler.cs" />
     <Compile Include="Components\AbilityDeliver.cs" />
