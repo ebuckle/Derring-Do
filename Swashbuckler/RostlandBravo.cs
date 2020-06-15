@@ -2,9 +2,11 @@
 using CallOfTheWild.NewMechanics;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
+using Kingmaker.Blueprints.Facts;
 using Kingmaker.Blueprints.Items;
 using Kingmaker.Blueprints.Items.Weapons;
 using Kingmaker.Designers.Mechanics.Facts;
+using Kingmaker.Designers.Mechanics.Recommendations;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
@@ -136,6 +138,7 @@ namespace Derring_Do
                                                     );
 
             dazzling_display_feature.AddComponent(Create<FeatureReplacement>(f => f.replacement_feature = inevitable_victory_deed));
+            dazzling_display_feature.AddComponent(Create<RecommendationNoFeatFromGroup>(r => r.Features = new BlueprintUnitFact[] { inevitable_victory_deed }));
         }
 
         static void createSweepingWindFeint()
