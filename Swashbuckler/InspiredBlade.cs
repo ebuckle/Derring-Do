@@ -28,6 +28,7 @@ using Kingmaker.Blueprints.Facts;
 using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
 using Kingmaker.Designers.Mechanics.Recommendations;
+using Kingmaker.Blueprints.Items;
 
 namespace Derring_Do
 {
@@ -62,6 +63,15 @@ namespace Derring_Do
             inspired_blade.OverrideAttributeRecommendations = true;
             inspired_blade.RecommendedAttributes = new StatType[] { StatType.Dexterity, StatType.Charisma, StatType.Intelligence };
             library.AddAsset(inspired_blade, "9dbb6ac330874b358b2b041287f99d18");
+
+            inspired_blade.ReplaceStartingEquipment = true;
+            inspired_blade.StartingItems = new BlueprintItem[]
+            {
+                library.Get<BlueprintItem>("afbe88d27a0eb544583e00fa78ffb2c7"), //StuddedStandard
+                library.Get<BlueprintItem>("78aef04821150bd479314bc974ea73e2"), //Buckler
+                library.Get<BlueprintItem>("bc93a78d71bef084fa155e529660ed0d"), //PotionOfShieldOfFaith
+                library.Get<BlueprintItem>("d52566ae8cbe8dc4dae977ef51c27d91"), //PotionOfCureLightWounds
+            };
 
             //Create Features
             createInspiredPanache();
