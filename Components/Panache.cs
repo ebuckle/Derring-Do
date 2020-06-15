@@ -97,6 +97,14 @@ namespace Derring_Do
             {
                 return false;
             }
+            if (this.OnlyOnFullAttack && !evt.IsFullAttack)
+            {
+                return false;
+            }
+            if (this.OnlyOnFirstAttack && !evt.IsFirstAttack)
+            {
+                return false;
+            }
             bool flag = evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.Light) || evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (evt.Initiator.Descriptor.State.Features.DuelingMastery && evt.Weapon.Blueprint.Category == WeaponCategory.DuelingSword) || evt.Initiator.Descriptor.Ensure<DamageGracePart>().HasEntry(evt.Weapon.Blueprint.Category);
             return !this.DuelistWeapon || flag;
         }
@@ -121,6 +129,10 @@ namespace Derring_Do
             }
             return true;
         }
+
+        public bool OnlyOnFirstAttack;
+
+        public bool OnlyOnFullAttack;
 
         public BlueprintBuff deadly_stab_buff;
 

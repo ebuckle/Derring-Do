@@ -46,6 +46,9 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Pathfinder Kingmaker\Kingmaker_Data\Managed\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="ProperFlanking20">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Pathfinder Kingmaker\Mods\ProperFlanking2\ProperFlanking20.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -87,8 +90,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Components\InspiredStrike.cs" />
+    <Compile Include="Components\TerrorOfTheGreatWyrm.cs" />
     <Compile Include="Swashbuckler\FavoredClass.cs" />
     <Compile Include="Swashbuckler\InspiredBlade.cs" />
+    <Compile Include="Swashbuckler\RostlandBravo.cs" />
     <Compile Include="Swashbuckler\Swashbuckler.cs" />
     <Compile Include="Components\AbilityDeliver.cs" />
     <Compile Include="Components\BleedingWound.cs" />

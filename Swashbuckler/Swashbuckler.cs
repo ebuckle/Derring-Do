@@ -165,7 +165,8 @@ namespace Derring_Do
             RegisterClass(swashbuckler_class);
 
             InspiredBlade.create();
-            swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade };
+            RostlandBravo.create();
+            swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade, RostlandBravo.rostland_bravo };
 
             SwashbucklerFeats.createFeats();
 

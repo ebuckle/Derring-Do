@@ -1,5 +1,7 @@
 ﻿using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
+using Kingmaker.Enums;
+using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components.Base;
 using static Derring_Do.Extensions;
@@ -18,6 +20,23 @@ namespace Derring_Do
         public string GetReason()
         {
             return "Invalid weapon";
+        }
+    }
+
+    [ComponentName("Check Caster is Wielding Only a Dueling Sword")]
+    [AllowedOn(typeof(BlueprintAbility))]
+    [AllowedOn(typeof(BlueprintComponent))]
+    public class AbilityCasterDuelingSwordCheck : BlueprintComponent, IAbilityCasterChecker
+    {
+        public bool CorrectCaster(UnitEntityData caster)
+        {
+            bool flag = caster.Body.PrimaryHand.Weapon.Blueprint.Category == WeaponCategory.DuelingSword;
+            bool flag2 = caster.Body.SecondaryHand.HasWeapon && caster.Body.SecondaryHand.MaybeWeapon != caster.Body.EmptyHandWeapon;
+            return (flag && !flag2 && !caster.Body.SecondaryHand.HasShield);
+        }
+        public string GetReason()
+        {
+            return "Must be wielding only a Dueling Sword";
         }
     }
 
