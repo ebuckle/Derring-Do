@@ -330,6 +330,7 @@ namespace Derring_Do
                                                  Create<RecommendationNoFeatFromGroup>(r => r.Features = new BlueprintUnitFact[] { weapon_finesse, improved_critical })
                                                  );
             library.Get<BlueprintFeature>("90e54424d682d104ab36436bd527af09").AddComponent(Create<FeatureReplacement>(f => f.replacement_feature = swashbuckler_finesse)); // weapon finesse
+            weapon_finesse.GetComponent<RecommendationNoFeatFromGroup>().Features = weapon_finesse.GetComponent<RecommendationNoFeatFromGroup>().Features.AddToArray(swashbuckler_finesse);
         }
 
         static void createCharmedLife()
@@ -432,6 +433,7 @@ namespace Derring_Do
 
         static void createSwashbucklerWeaponTraining()
         {
+            var improved_critical = library.Get<BlueprintParametrizedFeature>("f4201c85a991369408740c6888362e20");
             var weapon_training = library.Get<BlueprintFeatureSelection>("b8cecf4e5e464ad41b79d5b42b76b399");
 
             swashbuckler_weapon_training = CreateFeature("SwashbucklerWeaponTrainingSwashbucklerFeature",
@@ -449,6 +451,8 @@ namespace Derring_Do
             swashbuckler_weapon_training.Ranks = 4;
             swashbuckler_weapon_training.ReapplyOnLevelUp = true;
             swashbuckler_weapon_training.AddComponent(CreateContextRankConfig(ContextRankBaseValueType.FeatureRank, feature: swashbuckler_weapon_training));
+
+            improved_critical.GetComponent<RecommendationNoFeatFromGroup>().Features = improved_critical.GetComponent<RecommendationNoFeatFromGroup>().Features.AddToArray(swashbuckler_weapon_training);
         }
 
         static void createSwashbucklerWeaponMastery()

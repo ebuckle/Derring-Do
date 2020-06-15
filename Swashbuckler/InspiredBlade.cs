@@ -27,6 +27,7 @@ using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
+using Kingmaker.Designers.Mechanics.Recommendations;
 
 namespace Derring_Do
 {
@@ -131,12 +132,14 @@ namespace Derring_Do
                                              Common.createAddParametrizedFeatures(weapon_focus_rapier, WeaponCategory.Rapier)
                                              );
             library.Get<BlueprintFeature>("90e54424d682d104ab36436bd527af09").AddComponent(Create<FeatureReplacement>(f => f.replacement_feature = inspired_finesse)); // weapon finesse
+            weapon_finesse.GetComponent<RecommendationNoFeatFromGroup>().Features = weapon_finesse.GetComponent<RecommendationNoFeatFromGroup>().Features.AddToArray(inspired_finesse);
         }
 
         static void createRapierTraining()
         {
             var weapon_training = library.Get<BlueprintFeatureSelection>("b8cecf4e5e464ad41b79d5b42b76b399");
             var arcane_pool = library.Get<BlueprintFeature>("3ce9bb90749c21249adc639031d5eed1");
+            var improved_critical = library.Get<BlueprintParametrizedFeature>("f4201c85a991369408740c6888362e20");
 
             rapier_training = CreateFeature("RapierTrainingSwashbucklerFeature",
                                             "Rapier Training",
@@ -154,6 +157,7 @@ namespace Derring_Do
             rapier_training.Ranks = 4;
             rapier_training.ReapplyOnLevelUp = true;
             rapier_training.AddComponent(CreateContextRankConfig(ContextRankBaseValueType.FeatureRank, feature: rapier_training));
+            improved_critical.GetComponent<RecommendationNoFeatFromGroup>().Features = improved_critical.GetComponent<RecommendationNoFeatFromGroup>().Features.AddToArray(rapier_training);
         }
 
         static void createRapierWeaponMastery()
