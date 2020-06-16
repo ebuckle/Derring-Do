@@ -1,28 +1,32 @@
-﻿using System;
+﻿using Kingmaker.Blueprints;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Kingmaker;
-using Kingmaker.Blueprints;
-using Kingmaker.Blueprints.Root;
-using Kingmaker.UI.Common.Animations;
-using Kingmaker.UI.LevelUp;
-using Kingmaker.Utility;
-using UnityEngine;
-using Harmony12;
 using UnityModManagerNet;
-using CallOfTheWild;
 
 namespace Derring_Do
 {
     public class Main
     {
+        internal class Settings
+        {
+            internal bool thrown_weapons_and_flying_blade { get; }
+            internal Settings()
+            {
+
+                using (StreamReader settings_file = File.OpenText(UnityModManager.modsPath + @"/Derring-Do/settings.json"))
+                using (JsonTextReader reader = new JsonTextReader(settings_file))
+                {
+                    JObject jo = (JObject)JToken.ReadFrom(reader);
+                    thrown_weapons_and_flying_blade = (bool)jo["thrown_weapons_and_flying_blade"];
+                }
+            }
+        }
+        static internal Settings settings = new Settings();
+
         internal static UnityModManagerNet.UnityModManager.ModEntry.ModLogger logger;
         internal static Harmony12.HarmonyInstance harmony;
         public static LibraryScriptableObject library;
@@ -72,8 +76,12 @@ namespace Derring_Do
                 try
                 {
                     Main.DebugLog("Loading Derring-Do");
-
-                    Swashbuckler.createSwashbucklerClass();
+                    if (settings.thrown_weapons_and_flying_blade)
+                    {
+                        Main.DebugLog("Adding Thrown Daggers and Starknives");
+                        ThrowAnything.create();
+                    }
+                    Swashbuckler.createSwashbucklerClass(settings.thrown_weapons_and_flying_blade);
                 }
                 catch (Exception ex)
                 {
