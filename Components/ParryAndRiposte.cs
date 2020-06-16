@@ -11,6 +11,7 @@ using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using static CallOfTheWild.Helpers;
+using static Derring_Do.ThrowAnything;
 
 namespace Derring_Do
 {
@@ -18,12 +19,21 @@ namespace Derring_Do
     [AllowedOn(typeof(BlueprintBuff))]
     public class SwashbucklerParryAndRiposte : OwnedGameLogicComponent<UnitDescriptor>, IGlobalRulebookHandler<RuleAttackRoll>, IRulebookHandler<RuleAttackRoll>, IGlobalRulebookSubscriber
     {
+        private bool did_swap = false;
+
         public void OnEventAboutToTrigger(RuleAttackRoll evt)
         {
             if (evt.Target.Descriptor.Resources.GetResourceAmount(resource) < cost)
             {
                 return;
             }
+
+            if ((base.Owner.Body.PrimaryHand.Weapon.Blueprint.Category == WeaponCategory.Dagger || base.Owner.Body.PrimaryHand.Weapon.Blueprint.Category == WeaponCategory.Starknife) && base.Owner.Body.PrimaryHand.Weapon.Blueprint.IsRanged)
+            {
+                ThrowAnything.toggleThrown(base.Owner.Body.PrimaryHand.Weapon, evt.Initiator);
+                did_swap = true;
+            }
+
             if (!evt.Weapon.Blueprint.IsMelee || evt.Parry != null || !base.Owner.Unit.IsEnemy(evt.Initiator))
             {
                 return;
@@ -50,6 +60,7 @@ namespace Derring_Do
                 }
             }
             */
+
             evt.TryParry(base.Owner.Unit, base.Owner.Body.PrimaryHand.Weapon, 0);
             if (evt.Parry == null)
             {
@@ -66,6 +77,11 @@ namespace Derring_Do
 
         public void OnEventDidTrigger(RuleAttackRoll evt)
         {
+            if (did_swap)
+            {
+                ThrowAnything.toggleThrown(base.Owner.Body.PrimaryHand.Weapon, evt.Initiator);
+            }
+            did_swap = false;
             RuleAttackRoll.ParryData parry = evt.Parry;
             if (((parry != null) ? parry.Initiator : null) != base.Owner.Unit)
             {
