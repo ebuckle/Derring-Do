@@ -1077,7 +1077,6 @@ namespace Derring_Do
                                          "4f5cf35a3d8047f9b3dc8258c97eb2f4",
                                          improved_uncanny_dodge.Icon,
                                          FeatureGroup.None,
-                                         //CallOfTheWild.Helpers.CreateAddFact(evasive_hidden_toggle)
                                          Create<EvasiveLogic>(e => e.Resource = panache_resource)
                                          );
         }

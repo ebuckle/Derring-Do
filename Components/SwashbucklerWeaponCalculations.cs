@@ -260,4 +260,37 @@ namespace Derring_Do
             }
         }
     }
+
+    [ComponentName("Crits with a dagger or starknife are autoconfirmed")]
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class CritAutoconfirmWithFlyingBladeWeapons : RuleInitiatorLogicComponent<RuleAttackRoll>
+    {
+        public override void OnEventAboutToTrigger(RuleAttackRoll evt)
+        {
+            if (evt.Weapon.Blueprint.Category == WeaponCategory.Dagger || evt.Weapon.Blueprint.Category == WeaponCategory.Starknife)
+            {
+                evt.AutoCriticalConfirmation = true;
+            }
+        }
+        public override void OnEventDidTrigger(RuleAttackRoll evt)
+        {
+        }
+    }
+
+    [ComponentName("Increase critical multiplier by one if owner is wielding a dagger or starknife")]
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class IncreasedCriticalMultiplierWithFlyingBladeWeapons : RuleInitiatorLogicComponent<RuleCalculateWeaponStats>
+    {
+        public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
+        {
+            if (evt.Weapon != null && (evt.Weapon.Blueprint.Category == WeaponCategory.Dagger || evt.Weapon.Blueprint.Category == WeaponCategory.Starknife))
+            {
+                evt.AdditionalCriticalMultiplier = 1;
+            }
+        }
+
+        public override void OnEventDidTrigger(RuleCalculateWeaponStats evt)
+        {
+        }
+    }
 }

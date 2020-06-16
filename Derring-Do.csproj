@@ -89,6 +89,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Components\DisruptingCounter.cs" />
     <Compile Include="Components\InspiredStrike.cs" />
     <Compile Include="Components\TerrorOfTheGreatWyrm.cs" />
     <Compile Include="Swashbuckler\FavoredClass.cs" />

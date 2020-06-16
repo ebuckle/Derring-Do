@@ -4,12 +4,19 @@ using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Items;
 using Kingmaker.Designers.Mechanics.Buffs;
+using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.Designers.Mechanics.Recommendations;
+using Kingmaker.ElementsSystem;
 using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
+using Kingmaker.UnitLogic.Abilities.Blueprints;
+using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.UnitLogic.ActivatableAbilities;
 using Kingmaker.UnitLogic.FactLogic;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using static CallOfTheWild.Helpers;
+using static Kingmaker.Designers.Mechanics.Facts.AttackTypeAttackBonus;
+using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
 namespace Derring_Do
 {
@@ -25,7 +32,8 @@ namespace Derring_Do
 
         static public BlueprintFeature flying_blade_mastery;
 
-        static public BlueprintFeature subtle_throw_deed;
+        static public BlueprintFeature subtle_throw_deed_first;
+        static public BlueprintFeature subtle_throw_deed_sixth;
 
         static public BlueprintFeature disrupting_counter_deed;
 
@@ -82,9 +90,10 @@ namespace Derring_Do
                                                              Helpers.LevelEntry(20, Swashbuckler.swashbuckler_weapon_mastery),
                                                            };
 
-            flying_blade.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, flying_panache, subtle_throw_deed),
+            flying_blade.AddFeatures = new LevelEntry[] { Helpers.LevelEntry(1, flying_panache, subtle_throw_deed_first),
                                                           Helpers.LevelEntry(3, disrupting_counter_deed, precise_throw_deed),
                                                           Helpers.LevelEntry(5, flying_blade_training),
+                                                          Helpers.LevelEntry(6, subtle_throw_deed_sixth),
                                                           Helpers.LevelEntry(7, targeted_throw_deed),
                                                           Helpers.LevelEntry(9, flying_blade_training),
                                                           Helpers.LevelEntry(11, bleeding_wound_deed),
@@ -96,6 +105,7 @@ namespace Derring_Do
 
             Swashbuckler.swashbuckler_progression.UIDeterminatorsGroup = Swashbuckler.swashbuckler_progression.UIDeterminatorsGroup.AddToArray(flying_panache);
             Swashbuckler.swashbuckler_progression.UIGroups = Swashbuckler.swashbuckler_progression.UIGroups.AddToArray(CreateUIGroup(flying_blade_training, flying_blade_mastery));
+            Swashbuckler.swashbuckler_progression.UIGroups = Swashbuckler.swashbuckler_progression.UIGroups.AddToArray(CreateUIGroup(subtle_throw_deed_first, subtle_throw_deed_sixth));
             Swashbuckler.swashbuckler_class.Archetypes = Swashbuckler.swashbuckler_class.Archetypes.AddToArray(flying_blade);
         }
 
@@ -147,33 +157,139 @@ namespace Derring_Do
         {
             flying_blade_mastery = CreateFeature("FlyingBladeMasterySwashbucklerFeature",
                                                  "Flying Blade Mastery",
-                                                 "",
+                                                 "At 20th level, when an attack that a flying blade makes with a dagger or starknife threatens a critical hit, that critical hit is automatically confirmed. Furthermore, the critical modifiers of daggers and starknives increase by 1 (×2 becomes ×3, and so on).",
                                                  "e0885d853c6748bd81dee057cd4d1feb",
-                                                 null,
-                                                 FeatureGroup.None
+                                                 null, //TODO icon
+                                                 FeatureGroup.None,
+                                                 Create<CritAutoconfirmWithFlyingBladeWeapons>(),
+                                                 Create<IncreasedCriticalMultiplierWithFlyingBladeWeapons>()
                                                  );
         }
 
         static void createSubtleThrow()
         {
-            subtle_throw_deed = CreateFeature("SubtleThrowSwashbucklerFeature",
-                                              "Subtle Throw",
-                                              "",
-                                              "4509f2bc6afe49eaac90d635adb4d2eb",
-                                              null,
-                                              FeatureGroup.None
-                                              );
+            var subtle_throw_buff_first = CreateBuff("SubtleThrowLevelOneSwashbucklerBuff",
+                                                     "Subtle Throw",
+                                                     "At 1st level, a flying blade can spend 1 panache point as part of a ranged attack with a dagger or starknife to make it without provoking attacks of opportunity.",
+                                                     "09d754756df3471892a80485684a3929",
+                                                     null, //TODO icon
+                                                     null, //TODO fx
+                                                     Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.CheckWeaponCategory = true; a.Category = WeaponCategory.Dagger; a.CheckWeaponRangeType = true; a.RangeType = WeaponRangeType.Ranged; a.Action = CreateActionList(Create<SpendPanache>(s => { s.amount = 1; s.resource = Swashbuckler.panache_resource; })); a.ActionsOnInitiator = true; a.OnlyHit = false; }),
+                                                     Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.CheckWeaponCategory = true; a.Category = WeaponCategory.Starknife; a.CheckWeaponRangeType = true; a.RangeType = WeaponRangeType.Ranged; a.Action = CreateActionList(Create<SpendPanache>(s => { s.amount = 1; s.resource = Swashbuckler.panache_resource; })); a.ActionsOnInitiator = true; a.OnlyHit = false; }),
+                                                     Create<PointBlankMaster>(p => p.Category = WeaponCategory.Dagger),
+                                                     Create<PointBlankMaster>(p => p.Category = WeaponCategory.Starknife)
+                                                     );
+
+            var subtle_throw_buff_sixth = CreateBuff("SubtleThrowLevelSixSwashbucklerBuff",
+                                                     "Subtle Throw",
+                                                     "At 6th level, as a swift action she can spend 1 panache point to make all of her ranged attacks with daggers or starknives without provoking attacks of opportunity until the start of her next turn.",
+                                                     "bc48843169584ae1941e90bb77a2983e",
+                                                     null, //TODO icon
+                                                     null, //TODO fx
+                                                     Create<PointBlankMaster>(p => p.Category = WeaponCategory.Dagger),
+                                                     Create<PointBlankMaster>(p => p.Category = WeaponCategory.Starknife)
+                                                     );
+
+            var apply_buff = Common.createContextActionApplyBuff(subtle_throw_buff_sixth, Helpers.CreateContextDuration(1), dispellable: false);
+
+            var subtle_throw_ability_first = CreateActivatableAbility("SubtleThrowLevelOneSwashbucklerAbility",
+                                                                      subtle_throw_buff_first.Name,
+                                                                      subtle_throw_buff_first.Description,
+                                                                      "0670250481f945949f3a97af84b08cd0",
+                                                                      subtle_throw_buff_first.Icon,
+                                                                      subtle_throw_buff_first,
+                                                                      AbilityActivationType.Immediately,
+                                                                      CommandType.Free,
+                                                                      null,
+                                                                      CallOfTheWild.Helpers.CreateActivatableResourceLogic(Swashbuckler.panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                      );
+            subtle_throw_ability_first.DeactivateImmediately = true;
+
+            var subtle_throw_ability_sixth = CreateAbility("SubtleThrowLevelSixSwashbucklerAbility",
+                                                           subtle_throw_buff_sixth.Name,
+                                                           subtle_throw_buff_sixth.Description,
+                                                           "5d8c41e4bc6c450e8d151a1d4509f06f",
+                                                           subtle_throw_buff_sixth.Icon,
+                                                           AbilityType.Extraordinary,
+                                                           CommandType.Swift,
+                                                           Kingmaker.UnitLogic.Abilities.Blueprints.AbilityRange.Personal,
+                                                           "",
+                                                           "",
+                                                           CreateRunActions(new GameAction[] { apply_buff }),
+                                                           Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; })
+                                                           );
+
+            subtle_throw_deed_first = CreateFeature("SubtleThrowLevelOneSwashbucklerFeature",
+                                                    "Subtle Throw",
+                                                    subtle_throw_ability_first.Description + "\n"
+                                                    + subtle_throw_ability_sixth.Description,
+                                                    "4509f2bc6afe49eaac90d635adb4d2eb",
+                                                    subtle_throw_ability_first.Icon, //TODO icon
+                                                    FeatureGroup.None,
+                                                    Helpers.CreateAddFact(subtle_throw_ability_first)
+                                                    );
+
+            subtle_throw_deed_sixth = CreateFeature("SubtleThrowLevelSixSwashbucklerFeature",
+                                                    "Subtle Throw",
+                                                    subtle_throw_deed_first.Description,
+                                                    "9a664fd5d8b647c38357dcb7fc8acf5d",
+                                                    subtle_throw_ability_sixth.Icon, //TODO icon
+                                                    FeatureGroup.None,
+                                                    Helpers.CreateAddFact(subtle_throw_ability_sixth)
+                                                    );
         }
 
         static void createDisruptingCounter()
         {
+            var disrupting_counter_enemy_flag = CreateBuff("DisruptingCounterEnemyFlag",
+                                                           "",
+                                                           "",
+                                                           "9482251d85c9400d98a3b39b0e0e0ca8",
+                                                           null,
+                                                           null
+                                                           );
+            disrupting_counter_enemy_flag.SetBuffFlags(BuffFlags.HiddenInUi);
+
+            var disrupting_counter_debuff = CreateBuff("DisruptingCounterEnemySwashbucklerBuff",
+                                                       "Disrupting Counter",
+                                                       "At 3rd level, when an opponent makes a melee attack against her, she can spend 1 panache point to make an attack of opportunity against the attacking foe. This attack of opportunity can be made with either a dagger or a starknife. If the attack hits, the opponent takes a –4 penalty on all attack rolls until the end of its turn.",
+                                                       "356d8f82251448a9b7650b63800a6901",
+                                                       null, //TODO icon
+                                                       null,
+                                                       Create<AddStatBonus>(a => { a.Stat = StatType.AdditionalAttackBonus; a.Descriptor = ModifierDescriptor.UntypedStackable; a.Value = -4; })
+                                                       );
+
+            var disrupting_counter_buff = CreateBuff("DisruptingCounterSwashbucklerBuff",
+                                                     disrupting_counter_debuff.Name,
+                                                     disrupting_counter_debuff.Description,
+                                                     "d5c1f919613a464eaa74339e8c8140d4",
+                                                     disrupting_counter_debuff.Icon, //TODO icon
+                                                     null,
+                                                     Create<DisruptingCounterTargetLogic>(d => d.enemy_flag = disrupting_counter_enemy_flag),
+                                                     Create<DisruptingCounterAOOLogic>(d => { d.debuff = disrupting_counter_debuff; d.enemy_flag = disrupting_counter_enemy_flag; })
+                                                     );
+
+            var disrupting_counter_ability = CreateActivatableAbility("DisruptingCounterSwashbucklerAbility",
+                                                                      disrupting_counter_debuff.Name,
+                                                                      disrupting_counter_debuff.Description,
+                                                                      "b389c906b0a844eba6bfedc2fb6eeeb7",
+                                                                      disrupting_counter_debuff.Icon,
+                                                                      disrupting_counter_buff,
+                                                                      AbilityActivationType.Immediately,
+                                                                      CommandType.Free,
+                                                                      null,
+                                                                      CallOfTheWild.Helpers.CreateActivatableResourceLogic(Swashbuckler.panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
+                                                                      );
+            disrupting_counter_ability.DeactivateImmediately = true;
+
             disrupting_counter_deed = CreateFeature("DisruptingCounterSwashbucklerFeature",
-                                  "Disrupting Counter",
-                                  "",
-                                  "7b0c9b9de8104d1b9b948969a9d1257b",
-                                  null,
-                                  FeatureGroup.None
-                                  );
+                                                    disrupting_counter_buff.Name,
+                                                    disrupting_counter_buff.Description,
+                                                    "7b0c9b9de8104d1b9b948969a9d1257b",
+                                                    null,
+                                                    FeatureGroup.None,
+                                                    Helpers.CreateAddFact(disrupting_counter_ability)
+                                                    );
         }
 
         static void createPreciseThrow()
