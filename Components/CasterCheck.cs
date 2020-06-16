@@ -1,7 +1,6 @@
 ﻿using Kingmaker.Blueprints;
 using Kingmaker.EntitySystem.Entities;
 using Kingmaker.Enums;
-using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components.Base;
 using static Derring_Do.Extensions;
@@ -53,6 +52,21 @@ namespace Derring_Do
         public string GetReason()
         {
             return "Require at least 1 panache point";
+        }
+    }
+
+    [ComponentName("Check Caster is Throwing a Dagger or Starknife")]
+    [AllowedOn(typeof(BlueprintAbility))]
+    [AllowedOn(typeof(BlueprintComponent))]
+    public class AbilityCasterThrowingWeaponCheck : BlueprintComponent, IAbilityCasterChecker
+    {
+        public bool CorrectCaster(UnitEntityData caster)
+        {
+            return (caster.Body.PrimaryHand.Weapon.Blueprint.Category == WeaponCategory.Dagger || caster.Body.PrimaryHand.Weapon.Blueprint.Category == WeaponCategory.Starknife) && caster.Body.PrimaryHand.Weapon.Blueprint.IsRanged;
+        }
+        public string GetReason()
+        {
+            return "Must be throwing a dagger or starknife";
         }
     }
 }

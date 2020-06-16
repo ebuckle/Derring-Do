@@ -1,7 +1,9 @@
 ﻿using CallOfTheWild;
+using CallOfTheWild.NewMechanics;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Selection;
+using Kingmaker.Blueprints.Facts;
 using Kingmaker.Blueprints.Items;
 using Kingmaker.Designers.Mechanics.Buffs;
 using Kingmaker.Designers.Mechanics.Facts;
@@ -11,9 +13,13 @@ using Kingmaker.EntitySystem.Stats;
 using Kingmaker.Enums;
 using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
+using Kingmaker.UnitLogic.Abilities.Components.TargetCheckers;
 using Kingmaker.UnitLogic.ActivatableAbilities;
+using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.FactLogic;
+using Kingmaker.UnitLogic.Mechanics.Actions;
 using Kingmaker.UnitLogic.Mechanics.Components;
+using Kingmaker.View.Animation;
 using static CallOfTheWild.Helpers;
 using static Kingmaker.Designers.Mechanics.Facts.AttackTypeAttackBonus;
 using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
@@ -296,7 +302,7 @@ namespace Derring_Do
         {
             precise_throw_deed = CreateFeature("PreciseThrowSwashbucklerFeature",
                                                "Precise Throw",
-                                               "At 3rd level, as long as she has at least 1 panache point, a flying blade can use her precise strike with a thrown dagger or starknife as long as the target is within 60 feet of her, and she increases the range increment of these weapons by 5 feet. She can spend 1 panache point when she throws a dagger or a starknife to ignore all range increment penalties with that ranged attack. This deed replaces menacing swordplay.",
+                                               "At 3rd level, as long as she has at least 1 panache point, a flying blade can use her precise strike with a thrown dagger or starknife as long as the target is within 60 feet of her, and she increases the range increment of these weapons by 5 feet.",
                                                "da8e9d51b0754316bf3db2bc58bcb89a",
                                                null, //TODO icon
                                                FeatureGroup.None
@@ -305,13 +311,117 @@ namespace Derring_Do
 
         static void createTargetedThrow()
         {
+            var disarm = library.Get<BlueprintAbility>("45d94c6db453cfc4a9b99b72d6afe6f6"); //Disarm ability
+            var immune_to_crits = library.Get<BlueprintFeature>("ced0f4e5d02d5914a9f9ff74acacf26d"); //Immunity to crits feature
+            var immune_to_mind_affecting = library.Get<BlueprintFeature>("3eb606c0564d0814ea01a824dbe42fb0"); //Immunity to mind affecting
+            var immune_to_trip = library.Get<BlueprintFeature>("c1b26f97b974aec469613f968439e7bb");
+            var immune_to_prone = library.Get<BlueprintBuff>("7e3cd4e16a990ab4e9ffa5d9ca3c4870");
+            var confusion_buff = library.Get<BlueprintBuff>("886c7407dc629dc499b9f1465ff382df");
+            var staggered_buff = library.Get<BlueprintBuff>("df3950af5a783bd4d91ab73eb8fa0fd3");
+            var magus_feats = library.Get<BlueprintFeatureSelection>("66befe7b24c42dd458952e3c47c93563");
+            var grease = library.Get<BlueprintAbility>("95851f6e85fe87d4190675db0419d112");
+            var true_strike = library.Get<BlueprintAbility>("2c38da66e5a599347ac95b3294acbe00");
+
+            var base_name = "Targeted Throw";
+            //TODO Projectile for attack
+            var targeted_strike_arms_ability = CreateAbility("TargetedThrowArmsSwashbucklerAbility",
+                                                             base_name + " - Arms",
+                                                             "The target takes no damage from the attack, but it is disarmed.",
+                                                             "3e6ff2d5d32a47919fd41178b4584efe",
+                                                             magus_feats.Icon,
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterThrowingWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new Kingmaker.Blueprints.Facts.BlueprintUnitFact[] { immune_to_crits }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
+                                                             Helpers.CreateRunActions(Create<DisarmTarget>()),
+                                                             Helpers.Create<AttackAnimation>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; })
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_arms_ability);
+            targeted_strike_arms_ability.setMiscAbilityParametersSingleTargetRangedHarmful(works_on_allies: false);
+            targeted_strike_arms_ability.NeedEquipWeapons = true;
+
+            var targeted_strike_head_ability = CreateAbility("TargetedThrowHeadSwashbucklerAbility",
+                                                             base_name + " - Head",
+                                                             "The target is confused for 1 round. This is a mind-affecting effect.",
+                                                             "e8153debdf824709851ca03767be5e1c",
+                                                             confusion_buff.Icon,
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterThrowingWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_mind_affecting }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; }),
+                                                             CreateRunActions(Common.createContextActionApplyBuff(confusion_buff, Helpers.CreateContextDuration(1), dispellable: false))
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_head_ability);
+            targeted_strike_head_ability.setMiscAbilityParametersSingleTargetRangedHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+            targeted_strike_head_ability.NeedEquipWeapons = true;
+
+            var targeted_strike_legs_ability = CreateAbility("TargetedThrowLegsSwashbucklerAbility",
+                                                             base_name + " - Legs",
+                                                             "The target is knocked prone. Creatures that are immune to trip attacks are immune to this effect.",
+                                                             "d4cee87127aa4b8896c2d6f3f8ece2b9",
+                                                             grease.Icon,
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterThrowingWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_prone }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; }),
+                                                             CreateRunActions(Helpers.Create<ContextActionKnockdownTarget>())
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_legs_ability);
+            targeted_strike_legs_ability.setMiscAbilityParametersSingleTargetRangedHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+            targeted_strike_legs_ability.NeedEquipWeapons = true;
+
+            var targeted_strike_torso_ability = CreateAbility("TargetedThrowTorsoSwashbucklerAbility",
+                                                             base_name + " - Torso",
+                                                             "The target is staggered for 1 round.",
+                                                             "43ca1a3ca060458ba6ba1ab19baeea98",
+                                                             staggered_buff.Icon,
+                                                             AbilityType.Extraordinary,
+                                                             CommandType.Standard,
+                                                             AbilityRange.Weapon,
+                                                             "",
+                                                             "",
+                                                             Create<AbilityCasterThrowingWeaponCheck>(),
+                                                             Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits }; a.UnlessFact = null; }),
+                                                             Create<AbilityTargetNotImmuneToPrecision>(),
+                                                             Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; }),
+                                                             CreateRunActions(Common.createContextActionApplyBuff(staggered_buff, Helpers.CreateContextDuration(1), dispellable: false))
+                                                             );
+            Common.setAsFullRoundAction(targeted_strike_torso_ability);
+            targeted_strike_torso_ability.setMiscAbilityParametersSingleTargetRangedHarmful(animation: Kingmaker.Visual.Animation.Kingmaker.Actions.UnitAnimationActionCastSpell.CastAnimationStyle.Immediate, animation_style: CastAnimationStyle.CastActionPoint, works_on_allies: false);
+            targeted_strike_torso_ability.NeedEquipWeapons = true;
+
+            var wrapper = Common.createVariantWrapper("SwashbucklerTargetedThrowAbility", "5e69192c181b4a0d97cacc72f792b619", targeted_strike_arms_ability, targeted_strike_head_ability, targeted_strike_legs_ability, targeted_strike_torso_ability);
+            wrapper.SetName("Targeted Throw");
+            wrapper.SetDescription("At 7th level, a flying blade can target individual body parts. This deed functions as the swashbuckler’s targeted strike deed, but the flying blade can also use this deed when making ranged attacks with either a dagger or a starknife as long as the target is within 60 feet of the flying blade.");
+            wrapper.SetIcon(true_strike.Icon);
+
             targeted_throw_deed = CreateFeature("TargetedThrowSwashbucklerFeature",
-                                              "Targeted Throw",
-                                              "",
-                                              "e91c94a56c514b3eab13eaded01e1df0",
-                                              null,
-                                              FeatureGroup.None
-                                              );
+                                                wrapper.Name,
+                                                wrapper.Description,
+                                                "e91c94a56c514b3eab13eaded01e1df0",
+                                                wrapper.Icon,
+                                                FeatureGroup.None,
+                                                Helpers.CreateAddFact(wrapper)
+                                                );
         }
 
         static void createBleedingWound()
