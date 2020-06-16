@@ -5,6 +5,7 @@ using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Classes.Selection;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.Blueprints.Items;
+using Kingmaker.Blueprints.Items.Weapons;
 using Kingmaker.Designers.Mechanics.Buffs;
 using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.Designers.Mechanics.Recommendations;
@@ -67,7 +68,6 @@ namespace Derring_Do
             flying_blade.StartingItems = new BlueprintItem[]
             {
                 library.Get<BlueprintItem>("afbe88d27a0eb544583e00fa78ffb2c7"), //StuddedStandard
-                library.Get<BlueprintItem>("aa514dbf4c3d61f4e9c0738bd4d373cb"), //DaggerStandard
                 library.Get<BlueprintItem>("aa514dbf4c3d61f4e9c0738bd4d373cb"), //DaggerStandard
                 library.Get<BlueprintItem>("bc93a78d71bef084fa155e529660ed0d"), //PotionOfShieldOfFaith
                 library.Get<BlueprintItem>("d52566ae8cbe8dc4dae977ef51c27d91"), //PotionOfCureLightWounds
@@ -138,13 +138,14 @@ namespace Derring_Do
         static void createFlyingBladeTraining()
         {
             var improved_critical = library.Get<BlueprintParametrizedFeature>("f4201c85a991369408740c6888362e20");
+            var dagger = library.Get<BlueprintWeaponType>("07cc1a7fceaee5b42b3e43da960fe76d");
 
             flying_blade_training = CreateFeature("FlyingBladeTrainingSwashbucklerFeature",
                                                   "Flying Blade Training",
                                                   "At 5th level, a flying blade gains a +1 bonus on attack and damage rolls when using daggers or starknives in combat. When a flying blade wields a dagger or starknife, she gains the benefit of the Improved Critical feat with those weapons. Additionally, a flying blade increases the range increment of a thrown dagger or starknife by 5 feet. The increase of range increment stacks with that of precise throw.\n"
                                                   + "Every 4 levels thereafter, the bonus on attack and damage rolls increases by 1, and the range increment increases by 5 feet.",
                                                   "48cb1a6729cf4c8c8f6a36ed20baa3b3",
-                                                  null, //TODO new icon
+                                                  dagger.Icon,
                                                   FeatureGroup.None,
                                                   Create<WeaponTraining>(),
                                                   Create<WeaponTrainingBonuses>(w => { w.Stat = StatType.AdditionalAttackBonus; w.Descriptor = ModifierDescriptor.UntypedStackable; }),
@@ -160,11 +161,13 @@ namespace Derring_Do
 
         static void createFlyingBladeMastery()
         {
+            var spellstrike = library.Get<BlueprintFeature>("be50f4e97fff8a24ba92561f1694a945");
+
             flying_blade_mastery = CreateFeature("FlyingBladeMasterySwashbucklerFeature",
                                                  "Flying Blade Mastery",
                                                  "At 20th level, when an attack that a flying blade makes with a dagger or starknife threatens a critical hit, that critical hit is automatically confirmed. Furthermore, the critical modifiers of daggers and starknives increase by 1 (×2 becomes ×3, and so on).",
                                                  "e0885d853c6748bd81dee057cd4d1feb",
-                                                 null, //TODO icon
+                                                 spellstrike.Icon,
                                                  FeatureGroup.None,
                                                  Create<CritAutoconfirmWithFlyingBladeWeapons>(),
                                                  Create<IncreasedCriticalMultiplierWithFlyingBladeWeapons>()
@@ -173,12 +176,14 @@ namespace Derring_Do
 
         static void createSubtleThrow()
         {
+            var displacement = library.Get<BlueprintAbility>("903092f6488f9ce45a80943923576ab3");
+
             var subtle_throw_buff_first = CreateBuff("SubtleThrowLevelOneSwashbucklerBuff",
                                                      "Subtle Throw",
                                                      "At 1st level, a flying blade can spend 1 panache point as part of a ranged attack with a dagger or starknife to make it without provoking attacks of opportunity.",
                                                      "09d754756df3471892a80485684a3929",
-                                                     null, //TODO icon
-                                                     null, //TODO fx
+                                                     displacement.Icon,
+                                                     null,
                                                      Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.CheckWeaponCategory = true; a.Category = WeaponCategory.Dagger; a.CheckWeaponRangeType = true; a.RangeType = WeaponRangeType.Ranged; a.Action = CreateActionList(Create<SpendPanache>(s => { s.amount = 1; s.resource = Swashbuckler.panache_resource; })); a.ActionsOnInitiator = true; a.OnlyHit = false; }),
                                                      Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.CheckWeaponCategory = true; a.Category = WeaponCategory.Starknife; a.CheckWeaponRangeType = true; a.RangeType = WeaponRangeType.Ranged; a.Action = CreateActionList(Create<SpendPanache>(s => { s.amount = 1; s.resource = Swashbuckler.panache_resource; })); a.ActionsOnInitiator = true; a.OnlyHit = false; }),
                                                      Create<PointBlankMaster>(p => p.Category = WeaponCategory.Dagger),
@@ -189,8 +194,8 @@ namespace Derring_Do
                                                      "Subtle Throw",
                                                      "At 6th level, as a swift action she can spend 1 panache point to make all of her ranged attacks with daggers or starknives without provoking attacks of opportunity until the start of her next turn.",
                                                      "bc48843169584ae1941e90bb77a2983e",
-                                                     null, //TODO icon
-                                                     null, //TODO fx
+                                                     displacement.Icon,
+                                                     null,
                                                      Create<PointBlankMaster>(p => p.Category = WeaponCategory.Dagger),
                                                      Create<PointBlankMaster>(p => p.Category = WeaponCategory.Starknife)
                                                      );
@@ -246,6 +251,8 @@ namespace Derring_Do
 
         static void createDisruptingCounter()
         {
+            var stunning_barrier = library.Get<BlueprintAbility>("a5ec7892fb1c2f74598b3a82f3fd679f");
+
             var disrupting_counter_enemy_flag = CreateBuff("DisruptingCounterEnemyFlag",
                                                            "",
                                                            "",
@@ -259,7 +266,7 @@ namespace Derring_Do
                                                        "Disrupting Counter",
                                                        "At 3rd level, when an opponent makes a melee attack against her, she can spend 1 panache point to make an attack of opportunity against the attacking foe. This attack of opportunity can be made with either a dagger or a starknife. If the attack hits, the opponent takes a –4 penalty on all attack rolls until the end of its turn.",
                                                        "356d8f82251448a9b7650b63800a6901",
-                                                       null, //TODO icon
+                                                       stunning_barrier.Icon,
                                                        null,
                                                        Create<AddStatBonus>(a => { a.Stat = StatType.AdditionalAttackBonus; a.Descriptor = ModifierDescriptor.UntypedStackable; a.Value = -4; })
                                                        );
@@ -268,7 +275,7 @@ namespace Derring_Do
                                                      disrupting_counter_debuff.Name,
                                                      disrupting_counter_debuff.Description,
                                                      "d5c1f919613a464eaa74339e8c8140d4",
-                                                     disrupting_counter_debuff.Icon, //TODO icon
+                                                     disrupting_counter_debuff.Icon,
                                                      null,
                                                      Create<DisruptingCounterTargetLogic>(d => d.enemy_flag = disrupting_counter_enemy_flag),
                                                      Create<DisruptingCounterAOOLogic>(d => { d.debuff = disrupting_counter_debuff; d.enemy_flag = disrupting_counter_enemy_flag; })
@@ -291,7 +298,7 @@ namespace Derring_Do
                                                     disrupting_counter_buff.Name,
                                                     disrupting_counter_buff.Description,
                                                     "7b0c9b9de8104d1b9b948969a9d1257b",
-                                                    null,
+                                                    disrupting_counter_buff.Icon,
                                                     FeatureGroup.None,
                                                     Helpers.CreateAddFact(disrupting_counter_ability)
                                                     );
@@ -303,7 +310,7 @@ namespace Derring_Do
                                                "Precise Throw",
                                                "At 3rd level, as long as she has at least 1 panache point, a flying blade can use her precise strike with a thrown dagger or starknife as long as the target is within 60 feet of her, and she increases the range increment of these weapons by 5 feet.",
                                                "da8e9d51b0754316bf3db2bc58bcb89a",
-                                               null, //TODO icon
+                                               null,
                                                FeatureGroup.None
                                                );
         }
@@ -436,6 +443,8 @@ namespace Derring_Do
 
         static void createPerfectThrow()
         {
+            var exploit_weakness = library.Get<BlueprintFeature>("374a73288a36e2d4f9e54c75d2e6e573");
+
             var buff = CreateBuff("PerfectThrowSwashbucklerBuff",
                                   "",
                                   "",
@@ -449,9 +458,9 @@ namespace Derring_Do
 
             var perfect_throw_ability = CreateAbility("PerfectThrowSwashbucklerAbility",
                                                       "Perfect Throw",
-                                                      "At 15th level, a flying blade can pool all of her attack potential into a single attack. This deed functions as the swashbuckler’s perfect strike .deed, but the flying blade must use this deed when making ranged attacks with either a dagger or a starknife, and she can use this deed only on targets within 60 feet of her.",
+                                                      "At 15th level, a flying blade can pool all of her attack potential into a single attack. This deed functions as the swashbuckler’s perfect strike deed, but the flying blade must use this deed when making ranged attacks with either a dagger or a starknife, and she can use this deed only on targets within 60 feet of her.",
                                                       "84b3018b36774f939faf1f527976ca2b",
-                                                      null, //TODO icon
+                                                      exploit_weakness.Icon,
                                                       AbilityType.Extraordinary,
                                                       CommandType.Standard,
                                                       AbilityRange.Weapon,
@@ -473,7 +482,7 @@ namespace Derring_Do
                                                perfect_throw_ability.Name,
                                                perfect_throw_ability.Description,
                                                "d60d34a512304308ba15398d335ae737",
-                                               null,
+                                               perfect_throw_ability.Icon,
                                                FeatureGroup.None,
                                                Helpers.CreateAddFact(perfect_throw_ability)
                                                );
