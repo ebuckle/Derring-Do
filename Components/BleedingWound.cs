@@ -1,7 +1,9 @@
 ﻿using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.ElementsSystem;
+using Kingmaker.Enums;
 using Kingmaker.RuleSystem.Rules;
+using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Mechanics.Components;
 using static Derring_Do.Extensions;
 
@@ -26,7 +28,9 @@ namespace Derring_Do
                 return;
             }
 
-            if (!isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            var flying_blade_flag = (evt.Weapon.Blueprint.Category == WeaponCategory.Dagger || evt.Weapon.Blueprint.Category == WeaponCategory.Starknife) && evt.Initiator.Descriptor.HasFact(FlyingBlade.bleeding_wound_deed);
+
+            if (!isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor) && !flying_blade_flag)
             {
                 return;
             }

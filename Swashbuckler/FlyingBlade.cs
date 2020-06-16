@@ -89,7 +89,6 @@ namespace Derring_Do
                                                              Helpers.LevelEntry(5, Swashbuckler.swashbuckler_weapon_training),
                                                              Helpers.LevelEntry(7, Swashbuckler.targeted_strike_deed),
                                                              Helpers.LevelEntry(9, Swashbuckler.swashbuckler_weapon_training),
-                                                             Helpers.LevelEntry(11, Swashbuckler.bleeding_wound_deed),
                                                              Helpers.LevelEntry(13, Swashbuckler.swashbuckler_weapon_training),
                                                              Helpers.LevelEntry(15, Swashbuckler.perfect_thrust_deed),
                                                              Helpers.LevelEntry(17, Swashbuckler.swashbuckler_weapon_training),
@@ -427,23 +426,57 @@ namespace Derring_Do
         static void createBleedingWound()
         {
             bleeding_wound_deed = CreateFeature("BleedingWoundFlyingBladeSwashbucklerFeature",
-                                              "Bleeding Wound",
-                                              "",
-                                              "a3726674829943fca3c97d519831b67f",
-                                              null,
-                                              FeatureGroup.None
-                                              );
+                                                "Bleeding Throw",
+                                                "At 11th level, a flying blade can deal bleed damage as part of an attack. This deed functions as the swashbuckler’s bleeding wound deed, but the flying blade can also use this deed when making ranged attacks with either a dagger or a starknife as long as the target is within 60 feet of the flying blade. This deed alters bleeding wound.",
+                                                "a3726674829943fca3c97d519831b67f",
+                                                null,
+                                                FeatureGroup.None
+                                                );
         }
 
         static void createPerfectThrow()
         {
-            perfect_throw_deed = CreateFeature("PerfectThrowSwashbucklerFeature",
-                                  "Perfect Throw",
+            var buff = CreateBuff("PerfectThrowSwashbucklerBuff",
                                   "",
-                                  "d60d34a512304308ba15398d335ae737",
+                                  "",
+                                  "33970191791941debcecccad73201e70",
                                   null,
-                                  FeatureGroup.None
+                                  null,
+                                  Create<AttackTargetsTouchAC>(),
+                                  Create<IgnoreAllDR>()
                                   );
+            buff.SetBuffFlags(BuffFlags.HiddenInUi);
+
+            var perfect_throw_ability = CreateAbility("PerfectThrowSwashbucklerAbility",
+                                                      "Perfect Throw",
+                                                      "At 15th level, a flying blade can pool all of her attack potential into a single attack. This deed functions as the swashbuckler’s perfect strike .deed, but the flying blade must use this deed when making ranged attacks with either a dagger or a starknife, and she can use this deed only on targets within 60 feet of her.",
+                                                      "84b3018b36774f939faf1f527976ca2b",
+                                                      null, //TODO icon
+                                                      AbilityType.Extraordinary,
+                                                      CommandType.Standard,
+                                                      AbilityRange.Weapon,
+                                                      "",
+                                                      "",
+                                                      Create<AbilityCasterThrowingWeaponCheck>(),
+                                                      Create<AbilityCasterHasAtLeastOnePanache>(a => a.resource = Swashbuckler.panache_resource),
+                                                      Helpers.Create<AttackAnimation>(),
+                                                      Helpers.CreateRunActions(Common.createContextActionOnContextCaster(Common.createContextActionApplyBuff(buff, Helpers.CreateContextDuration(1), dispellable: false)),
+                                                                               Common.createContextActionAttack(action_on_miss: Helpers.CreateActionList(Common.createContextActionOnContextCaster(Common.createContextActionRemoveBuff(buff)))
+                                                                                                                )
+                                                                               )
+                                                      );
+            Common.setAsFullRoundAction(perfect_throw_ability);
+            perfect_throw_ability.setMiscAbilityParametersSingleTargetRangedHarmful(works_on_allies: false);
+            perfect_throw_ability.NeedEquipWeapons = true;
+
+            perfect_throw_deed = CreateFeature("PerfectThrowSwashbucklerFeature",
+                                               perfect_throw_ability.Name,
+                                               perfect_throw_ability.Description,
+                                               "d60d34a512304308ba15398d335ae737",
+                                               null,
+                                               FeatureGroup.None,
+                                               Helpers.CreateAddFact(perfect_throw_ability)
+                                               );
         }
     }
 }

@@ -110,7 +110,7 @@ namespace Derring_Do
 
         static public BlueprintFeature stunning_stab_deed;
 
-        internal static void createSwashbucklerClass()
+        internal static void createSwashbucklerClass(bool flying_blade_enabled)
         {
             Main.DebugLog("Creating Swashbuckler class");
             var duelist_class = GetClass("4e0ea99612ae87a499c7fb0588e31828");
@@ -165,8 +165,15 @@ namespace Derring_Do
 
             InspiredBlade.create();
             RostlandBravo.create();
-            FlyingBlade.create();
-            swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade, RostlandBravo.rostland_bravo, FlyingBlade.flying_blade };
+            if (flying_blade_enabled)
+            {
+                FlyingBlade.create();
+                swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade, RostlandBravo.rostland_bravo, FlyingBlade.flying_blade };
+            }
+            else
+            {
+                swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade, RostlandBravo.rostland_bravo };
+            }
 
             SwashbucklerFeats.createFeats();
 

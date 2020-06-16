@@ -121,9 +121,12 @@
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Swashbuckler\SwashbucklerFeats.cs" />
+    <Compile Include="ThowAnything\Feats.cs" />
+    <Compile Include="ThowAnything\ThrowAnything.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="info.json" />
+    <None Include="settings.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
