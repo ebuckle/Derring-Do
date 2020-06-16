@@ -240,6 +240,7 @@ namespace Derring_Do
     class Patch__ItemEntityWeapon__AttackRange
     {
         static BlueprintFeature flying_blade_training = FlyingBlade.flying_blade_training;
+        static BlueprintFeature precise_throw_deed = FlyingBlade.precise_throw_deed;
 
         static public void Postfix(ItemEntityWeapon __instance, ref Feet __result)
         {
@@ -247,14 +248,17 @@ namespace Derring_Do
             {
                 if (__instance.Blueprint.IsRanged)
                 {
-                    Main.logger.Log("Increasing range");
                     var fact = __instance.Wielder.Unit.Descriptor.GetFact(flying_blade_training);
-                    if (fact.GetRank() > 0)
+                    if (fact != null && fact.GetRank() > 0)
                     {
-                        Main.logger.Log("Rank is > 0");
                         var new_range = (fact.GetRank() * 5) + __result.Value;
                         __result = FeetExtension.Feet(new_range);
-                        Main.logger.Log("Range is now " + __result.Value + " feet.");
+                    }
+                    fact = __instance.Wielder.Unit.Descriptor.GetFact(precise_throw_deed);
+                    if (fact != null && __instance.Wielder.Resources.GetResourceAmount(Swashbuckler.panache_resource) > 0)
+                    {
+                        var new_range = 5 + __result.Value;
+                        __result = FeetExtension.Feet(new_range);
                     }
                 }
             }

@@ -295,12 +295,12 @@ namespace Derring_Do
         static void createPreciseThrow()
         {
             precise_throw_deed = CreateFeature("PreciseThrowSwashbucklerFeature",
-                      "Precise Throw",
-                      "",
-                      "da8e9d51b0754316bf3db2bc58bcb89a",
-                      null,
-                      FeatureGroup.None
-                      );
+                                               "Precise Throw",
+                                               "At 3rd level, as long as she has at least 1 panache point, a flying blade can use her precise strike with a thrown dagger or starknife as long as the target is within 60 feet of her, and she increases the range increment of these weapons by 5 feet. She can spend 1 panache point when she throws a dagger or a starknife to ignore all range increment penalties with that ranged attack. This deed replaces menacing swordplay.",
+                                               "da8e9d51b0754316bf3db2bc58bcb89a",
+                                               null, //TODO icon
+                                               FeatureGroup.None
+                                               );
         }
 
         static void createTargetedThrow()
