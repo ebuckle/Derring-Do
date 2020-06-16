@@ -92,6 +92,7 @@
     <Compile Include="Components\InspiredStrike.cs" />
     <Compile Include="Components\TerrorOfTheGreatWyrm.cs" />
     <Compile Include="Swashbuckler\FavoredClass.cs" />
+    <Compile Include="Swashbuckler\FlyingBlade.cs" />
     <Compile Include="Swashbuckler\InspiredBlade.cs" />
     <Compile Include="Swashbuckler\RostlandBravo.cs" />
     <Compile Include="Swashbuckler\Swashbuckler.cs" />

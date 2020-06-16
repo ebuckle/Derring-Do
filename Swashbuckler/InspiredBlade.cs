@@ -1,34 +1,25 @@
 ﻿using CallOfTheWild;
+using CallOfTheWild.NewMechanics;
+using CallOfTheWild.ResourceMechanics;
 using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
-using Kingmaker.Enums;
-using Kingmaker.UnitLogic.FactLogic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using CallOfTheWild.ResourceMechanics;
-using static CallOfTheWild.Helpers;
-using Kingmaker.UnitLogic.Mechanics.Components;
-using Kingmaker.EntitySystem.Stats;
-using Kingmaker.Designers.Mechanics.Facts;
 using Kingmaker.Blueprints.Classes.Selection;
-using CallOfTheWild.NewMechanics;
-using System.Security.Cryptography;
+using Kingmaker.Blueprints.Facts;
+using Kingmaker.Blueprints.Items;
 using Kingmaker.Designers.Mechanics.Buffs;
-using Kingmaker.UnitLogic.Mechanics.Actions;
-using Kingmaker.UnitLogic.Buffs.Blueprints;
-using Kingmaker.UnitLogic.Abilities.Blueprints;
-using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
+using Kingmaker.Designers.Mechanics.Facts;
+using Kingmaker.Designers.Mechanics.Recommendations;
 using Kingmaker.ElementsSystem;
+using Kingmaker.EntitySystem.Stats;
+using Kingmaker.Enums;
+using Kingmaker.UnitLogic.Abilities.Blueprints;
 using Kingmaker.UnitLogic.Abilities.Components;
 using Kingmaker.UnitLogic.ActivatableAbilities;
-using Kingmaker.Blueprints.Facts;
-using Kingmaker.UnitLogic.Abilities.Components.CasterCheckers;
-using Kingmaker.UnitLogic.ActivatableAbilities.Restrictions;
-using Kingmaker.Designers.Mechanics.Recommendations;
-using Kingmaker.Blueprints.Items;
+using Kingmaker.UnitLogic.Buffs.Blueprints;
+using Kingmaker.UnitLogic.FactLogic;
+using Kingmaker.UnitLogic.Mechanics.Components;
+using static CallOfTheWild.Helpers;
+using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
 namespace Derring_Do
 {
@@ -136,7 +127,7 @@ namespace Derring_Do
                                              "Inspired Finesse",
                                              "At 1st level, an inspired blade gains the benefits of Weapon Finesse with the rapier (this ability counts as having the Weapon Finesse feat for the purpose of meeting feat prerequisites) and gains Weapon Focus (rapier) as a bonus feat.",
                                              "541b48b726104373ae3f8780bbdb8be7",
-                                             weapon_focus.Icon, //TODO new icon
+                                             weapon_focus.Icon,
                                              FeatureGroup.None,
                                              Create<AttackStatReplacementForRapier>(),
                                              Common.createAddParametrizedFeatures(weapon_focus_rapier, WeaponCategory.Rapier)
@@ -155,7 +146,7 @@ namespace Derring_Do
                                             "Rapier Training",
                                             "At 5th level, an inspired blade gains a +1 bonus on attack rolls and a +2 bonus on damage rolls with rapiers. While wielding a rapier, she gains the benefit of the Improved Critical feat. These attack and damage bonuses increase by 1 for every 4 levels beyond 5th (to a maximum of +4 on attack rolls and +5 on damage rolls at 17th level).",
                                             "6b75c9ebc84748b0a404a00a280c2d15",
-                                            arcane_pool.Icon, //TODO new icon
+                                            arcane_pool.Icon,
                                             FeatureGroup.None,
                                             Create<WeaponTraining>(),
                                             Create<WeaponTrainingBonuses>(w => { w.Stat = StatType.AdditionalAttackBonus; w.Descriptor = ModifierDescriptor.UntypedStackable; }),
@@ -194,7 +185,7 @@ namespace Derring_Do
                                                      "Inspired Strike (Attack Bonus)",
                                                      "At 11th level, an inspired blade can spend 1 panache point when making an attack with a rapier to gain an insight bonus on that attack roll equal to her Intelligence modifier (minimum +1).",
                                                      "6c5fd556bc4f4392ace2156c97537fc7",
-                                                     arcane_weapon_speed.Icon, //TODO icon
+                                                     arcane_weapon_speed.Icon,
                                                      null, //TODO fx
                                                      Create<InspiredStrikeLogic>()
                                                      );
@@ -219,7 +210,7 @@ namespace Derring_Do
                                                        "Inspired Strike (Critical Bonus)",
                                                        "When an inspired blade hits with an attack augmented by inspired strike, she can spend 1 additional panache point to make the hit a critical threat, though if she does so, she does not regain panache if she confirms that critical threat.",
                                                        "8d45cc0c4fde464db38389b35e6d59e6",
-                                                       arcane_weapon_keen.Icon, //TODO icon
+                                                       arcane_weapon_keen.Icon,
                                                        null //TODO fx
                                                        );
 
@@ -240,7 +231,7 @@ namespace Derring_Do
                                                  "Inspired Strike",
                                                  "At 11th level, an inspired blade can spend 1 panache point when making an attack with a rapier to gain an insight bonus on that attack roll equal to her Intelligence modifier (minimum +1). When an inspired blade hits with an attack augmented by inspired strike, she can spend 1 additional panache point to make the hit a critical threat, though if she does so, she does not regain panache if she confirms that critical threat. The cost of this deed cannot be reduced by abilities such as Signature Deed.",
                                                  "bd648a4dc1f64001af8b658e194057e2",
-                                                 arcane_weapon_speed.Icon, //TODO icon
+                                                 arcane_weapon_speed.Icon,
                                                  FeatureGroup.None,
                                                  CreateAddFacts(new BlueprintUnitFact[] { inspired_strike_attack_ability, inspired_strike_crit_ability })
                                                  );

@@ -1,5 +1,4 @@
-﻿using CallOfTheWild;
-using Kingmaker.Blueprints;
+﻿using Kingmaker.Blueprints;
 using Kingmaker.Blueprints.Classes;
 using Kingmaker.Blueprints.Facts;
 using Kingmaker.EntitySystem.Stats;
@@ -94,6 +93,7 @@ namespace Derring_Do
     {
         static BlueprintFeature swashbuckler_weapon_training = Swashbuckler.swashbuckler_weapon_training;
         static BlueprintFeature rapier_training = InspiredBlade.rapier_training;
+        static BlueprintFeature flying_blade_training = FlyingBlade.flying_blade_training;
 
         static public void Postfix(UnitPartWeaponTraining __instance, ItemEntityWeapon weapon, ref int __result)
         {
@@ -117,6 +117,18 @@ namespace Derring_Do
             fact = __instance.Owner.GetFact(rapier_training);
 
             if (fact != null && weapon.Blueprint.Category == WeaponCategory.Rapier)
+            {
+                var rank = fact.GetRank();
+
+                if (rank > __result)
+                {
+                    __result = rank;
+                }
+            }
+
+            fact = __instance.Owner.GetFact(flying_blade_training);
+
+            if (fact != null && (weapon.Blueprint.Category == WeaponCategory.Dagger || weapon.Blueprint.Category == WeaponCategory.Starknife))
             {
                 var rank = fact.GetRank();
 
@@ -201,6 +213,51 @@ namespace Derring_Do
         }
         public override void OnEventDidTrigger(RuleAttackRoll evt)
         {
+        }
+    }
+
+    // Flying Blade
+
+    [ComponentName("Add Improved Critical if owner is wielding a dagger or starknife")]
+    [AllowedOn(typeof(BlueprintUnitFact))]
+    public class ImprovedCriticalOnFlyingBladeWeapons : RuleInitiatorLogicComponent<RuleCalculateWeaponStats>
+    {
+        public override void OnEventAboutToTrigger(RuleCalculateWeaponStats evt)
+        {
+            if (evt.Weapon != null && (evt.Weapon.Blueprint.Category == WeaponCategory.Dagger || evt.Weapon.Blueprint.Category == WeaponCategory.Starknife))
+            {
+                evt.DoubleCriticalEdge = true;
+            }
+        }
+
+        public override void OnEventDidTrigger(RuleCalculateWeaponStats evt)
+        {
+        }
+    }
+
+    [Harmony12.HarmonyPatch(typeof(ItemEntityWeapon))]
+    [Harmony12.HarmonyPatch("AttackRange", Harmony12.MethodType.Getter)]
+    class Patch__ItemEntityWeapon__AttackRange
+    {
+        static BlueprintFeature flying_blade_training = FlyingBlade.flying_blade_training;
+
+        static public void Postfix(ItemEntityWeapon __instance, ref Feet __result)
+        {
+            if (__instance.Wielder.Unit.Descriptor.HasFact(flying_blade_training) && (__instance.Blueprint.Category == WeaponCategory.Dagger || __instance.Blueprint.Category == WeaponCategory.Starknife)) 
+            {
+                if (__instance.Blueprint.IsRanged)
+                {
+                    Main.logger.Log("Increasing range");
+                    var fact = __instance.Wielder.Unit.Descriptor.GetFact(flying_blade_training);
+                    if (fact.GetRank() > 0)
+                    {
+                        Main.logger.Log("Rank is > 0");
+                        var new_range = (fact.GetRank() * 5) + __result.Value;
+                        __result = FeetExtension.Feet(new_range);
+                        Main.logger.Log("Range is now " + __result.Value + " feet.");
+                    }
+                }
+            }
         }
     }
 }

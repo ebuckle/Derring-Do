@@ -33,6 +33,7 @@ using Kingmaker.UnitLogic.Mechanics.Properties;
 using Kingmaker.Utility;
 using Kingmaker.View.Animation;
 using static CallOfTheWild.Helpers;
+using static Kingmaker.Designers.Mechanics.Facts.AttackTypeAttackBonus;
 using static Kingmaker.UnitLogic.Commands.Base.UnitCommand;
 
 namespace Derring_Do
@@ -69,8 +70,6 @@ namespace Derring_Do
         static public BlueprintFeature swashbuckler_weapon_training;
 
         static public BlueprintFeature swashbuckler_weapon_mastery;
-
-        static public BlueprintFeature CONSUME_PANACHE_DUMMY;
 
         static public BlueprintFeature derring_do_deed;
 
@@ -166,7 +165,8 @@ namespace Derring_Do
 
             InspiredBlade.create();
             RostlandBravo.create();
-            swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade, RostlandBravo.rostland_bravo };
+            FlyingBlade.create();
+            swashbuckler_class.Archetypes = new BlueprintArchetype[] { InspiredBlade.inspired_blade, RostlandBravo.rostland_bravo, FlyingBlade.flying_blade };
 
             SwashbucklerFeats.createFeats();
 
@@ -551,6 +551,7 @@ namespace Derring_Do
 
         static void createOpportuneParryAndRiposte()
         {
+            //TODO how does this work with Thrown Daggers?
             var duelist_parry = library.Get<BlueprintActivatableAbility>("c0248f304998aa64da458e097c022d73");
 
             var opportune_parry_and_riposte_buff = CreateBuff("OpportuneParryAndRiposteSwashbucklerBuff",
@@ -655,6 +656,7 @@ namespace Derring_Do
             menacing_swordplay_toggle_ability.DeactivateIfOwnerDisabled = false;
             menacing_swordplay_toggle_ability.DeactivateIfCombatEnded = false;
             menacing_swordplay_toggle_ability.DeactivateIfOwnerUnconscious = false;
+            menacing_swordplay_toggle_ability.DeactivateImmediately = true;
 
             menacing_swordplay_deed = CreateFeature("MenacingSwordplaySwashbucklerFeature",
                                                     menacing_swordplay_buff.Name,
@@ -1219,6 +1221,7 @@ namespace Derring_Do
             swashbucklers_edge_toggle_ability.DeactivateIfOwnerDisabled = false;
             swashbucklers_edge_toggle_ability.DeactivateIfCombatEnded = false;
             swashbucklers_edge_toggle_ability.DeactivateIfOwnerUnconscious = false;
+            swashbucklers_edge_toggle_ability.DeactivateImmediately = true;
 
             swashbucklers_edge_deed = CreateFeature("SwashbucklersEdgeSwashbucklerFeature",
                                                     swashbucklers_edge_buff.Name,
@@ -1254,7 +1257,7 @@ namespace Derring_Do
                                                                null,
                                                                CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
                                                                );
-            cheat_death_ability.DeactivateImmediately = false;
+            cheat_death_ability.DeactivateImmediately = true;
 
             cheat_death_deed = CreateFeature("CheatDeathSwashbucklerFeature",
                                              cheat_death_buff.Name,
@@ -1276,7 +1279,7 @@ namespace Derring_Do
             deadly_stab_buff.SetIcon(master_strike_toggle.Icon);
             deadly_stab_buff.ReplaceComponent<ContextCalculateAbilityParamsBasedOnClass>(c => { c.StatType = StatType.Dexterity; c.CharacterClass = swashbuckler_class; });
             var saving_throw_action = (deadly_stab_buff.GetComponent<AddInitiatorAttackWithWeaponTrigger>().Action.Actions[0] as Conditional).IfFalse.Actions[0];
-            deadly_stab_buff.ReplaceComponent<AddInitiatorAttackWithWeaponTrigger>(a => { a.CriticalHit = true; a.OnlySneakAttack = false; a.DuelistWeapon = true; a.Action = Helpers.CreateActionList(saving_throw_action, Create<SpendPanache>(s => { s.amount = 1; s.resource = panache_resource; })); });
+            deadly_stab_buff.ReplaceComponent<AddInitiatorAttackWithWeaponTrigger>(a => { a.CriticalHit = true; a.OnlySneakAttack = false; a.DuelistWeapon = true; a.CheckWeaponRangeType = true; a.RangeType = WeaponRangeType.Melee; a.Action = Helpers.CreateActionList(saving_throw_action, Create<SpendPanache>(s => { s.amount = 1; s.resource = panache_resource; })); });
 
             var deadly_stab_ability = CreateActivatableAbility("DeadlyStabSwashbucklerAbility",
                                                                deadly_stab_buff.Name,
@@ -1289,6 +1292,7 @@ namespace Derring_Do
                                                                null,
                                                                CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never)
                                                                );
+            deadly_stab_ability.DeactivateImmediately = true;
 
             deadly_stab_deed = CreateFeature("DeadlyStabSwashbucklerFeature",
                                              deadly_stab_buff.Name,
@@ -1313,7 +1317,7 @@ namespace Derring_Do
                                                 "0dd0384bdc5d46e8842569b0cf6810b8",
                                                 arcane_weapon_bane.Icon,
                                                 null,
-                                                Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.Action = action; a.OnlyHit = true; a.DuelistWeapon = true; }),
+                                                Create<AddInitiatorAttackWithWeaponTrigger>(a => { a.Action = action; a.OnlyHit = true; a.DuelistWeapon = true; a.CheckWeaponRangeType = true; a.RangeType = WeaponRangeType.Melee; }),
                                                 Common.createContextCalculateAbilityParamsBasedOnClass(swashbuckler_class, StatType.Dexterity)
                                                 );
 
@@ -1329,6 +1333,7 @@ namespace Derring_Do
                                                                 CallOfTheWild.Helpers.CreateActivatableResourceLogic(panache_resource, ActivatableAbilityResourceLogic.ResourceSpendType.Never),
                                                                 Helpers.Create<RestrictionHasEnoughResource>(r => { r.resource = panache_resource; r.amount = 2; })
                                                                 );
+            stunning_stab_toggle.DeactivateImmediately = true;
 
             stunning_stab_deed = CreateFeature("StunningStabSwashbucklerFeature",
                                                stunning_stab_buff.Name,
