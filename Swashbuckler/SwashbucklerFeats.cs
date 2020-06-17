@@ -30,7 +30,7 @@ namespace Derring_Do
                                                   panache.Icon,
                                                   FeatureGroup.Feat,
                                                   Helpers.Create<IncreaseResourceAmount>(i => { i.Resource = panache_resource; i.Value = 2; }),
-                                                  Helpers.PrerequisiteFeature(panache)
+                                                  Helpers.PrerequisiteFeaturesFromList(new BlueprintFeature[] { Swashbuckler.panache, InspiredBlade.inspired_panache, FlyingBlade.flying_panache }, any: true)
                                                   );
             extra_panache.Ranks = 10;
 
