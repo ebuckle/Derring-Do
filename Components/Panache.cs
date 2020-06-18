@@ -5,6 +5,7 @@ using Kingmaker.Enums;
 using Kingmaker.Items;
 using Kingmaker.PubSubSystem;
 using Kingmaker.RuleSystem.Rules;
+using Kingmaker.RuleSystem.Rules.Damage;
 using Kingmaker.UnitLogic;
 using Kingmaker.UnitLogic.Buffs.Blueprints;
 using Kingmaker.UnitLogic.Mechanics.Actions;
@@ -44,10 +45,6 @@ namespace Derring_Do
 
         public void OnEventDidTrigger(RuleAttackWithWeapon evt)
         {
-            if (!this.WaitForAttackResolve)
-            {
-                this.TryRunActions(evt);
-            }
         }
 
         public void OnEventAboutToTrigger(RuleAttackWithWeaponResolve evt)
@@ -58,13 +55,14 @@ namespace Derring_Do
         {
             if (this.WaitForAttackResolve)
             {
-                this.TryRunActions(evt.AttackWithWeapon);
+                this.TryRunActions(evt.AttackWithWeapon, evt);
             }
         }
 
-        private void TryRunActions(RuleAttackWithWeapon rule)
+        private void TryRunActions(RuleAttackWithWeapon rule, RuleAttackWithWeaponResolve evt)
         {
-            if (this.CheckCondition(rule) && this.CheckValidTarget(rule))
+            var valid_target = this.CheckValidTarget(rule);
+            if ((this.CheckCondition(rule) && valid_target) || ((IsRanged && CheckProjectile(evt)) && valid_target))
             {
                 using (new ContextAttackData(rule.AttackRoll, null))
                 {
@@ -105,8 +103,11 @@ namespace Derring_Do
             {
                 return false;
             }
-            bool flag = evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.Light) || evt.Weapon.Blueprint.Category.HasSubCategory(WeaponSubCategory.OneHandedPiercing) || (evt.Initiator.Descriptor.State.Features.DuelingMastery && evt.Weapon.Blueprint.Category == WeaponCategory.DuelingSword) || evt.Initiator.Descriptor.Ensure<DamageGracePart>().HasEntry(evt.Weapon.Blueprint.Category);
-            return !this.DuelistWeapon || flag;
+            if (this.DuelistWeapon && !Extensions.isSwashbucklerWeapon(evt.Weapon.Blueprint, evt.Initiator.Descriptor))
+            {
+                return false;
+            }
+            return true;
         }
 
         private bool CheckValidTarget(RuleAttackWithWeapon evt)
@@ -130,6 +131,25 @@ namespace Derring_Do
             return true;
         }
 
+        private bool CheckProjectile(RuleAttackWithWeaponResolve evt)
+        {
+            if (ReduceHPToZero && !(evt.Target.HPLeft <= 0 && evt.Target.HPLeft + evt.Damage.Damage > 0))
+            {
+                return false;
+            }
+            if (this.CriticalHit && (!evt.AttackWithWeapon.Projectile.AttackRoll.IsCriticalConfirmed || evt.AttackWithWeapon.Projectile.AttackRoll.FortificationNegatesCriticalHit))
+            {
+                return false;
+            }
+            if ((evt.AttackWithWeapon.Weapon.Blueprint.Category == WeaponCategory.Dagger || evt.AttackWithWeapon.Weapon.Blueprint.Category == WeaponCategory.Starknife) && evt.AttackWithWeapon.Weapon.Blueprint.IsRanged)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public bool IsRanged;
+
         public bool OnlyOnFirstAttack;
 
         public bool OnlyOnFullAttack;
@@ -138,7 +158,7 @@ namespace Derring_Do
 
         public bool IsInspiredBlade;
 
-        public bool WaitForAttackResolve;
+        public bool WaitForAttackResolve = true;
 
         public bool CriticalHit;
 
