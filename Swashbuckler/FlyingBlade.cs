@@ -131,6 +131,10 @@ namespace Derring_Do
                                            { a.ReduceHPToZero = true; a.Action = CreateActionList(Swashbuckler.restore_panache); a.DuelistWeapon = false; a.CheckWeaponCategory = true; a.Category = WeaponCategory.Dagger; }),
                                            Create<RestorePanacheAttackRollTrigger>(a =>
                                            { a.ReduceHPToZero = true; a.Action = CreateActionList(Swashbuckler.restore_panache); a.DuelistWeapon = false; a.CheckWeaponCategory = true; a.Category = WeaponCategory.Starknife; }),
+                                           Create<RestorePanacheAttackRollTrigger>(a =>
+                                           { a.CriticalHit = true; a.Action = CreateActionList(Swashbuckler.restore_panache); a.IsRanged = true; }),
+                                           Create<RestorePanacheAttackRollTrigger>(a =>
+                                           { a.ReduceHPToZero = true; a.Action = CreateActionList(Swashbuckler.restore_panache); a.IsRanged = true; }),
                                            CreateAddFacts(Swashbuckler.panache_gain_base)
                                            );
         }
