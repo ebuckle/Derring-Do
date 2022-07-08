@@ -370,6 +370,7 @@ namespace Derring_Do
                                                              Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_mind_affecting }; a.UnlessFact = null; }),
                                                              Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; }),
                                                              CreateRunActions(Common.createContextActionApplyBuff(confusion_buff, Helpers.CreateContextDuration(1), dispellable: false))
                                                              );
@@ -391,6 +392,7 @@ namespace Derring_Do
                                                              Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_prone }; a.UnlessFact = null; }),
                                                              Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; }),
                                                              CreateRunActions(Helpers.Create<ContextActionKnockdownTarget>())
                                                              );
@@ -412,6 +414,7 @@ namespace Derring_Do
                                                              Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits }; a.UnlessFact = null; }),
                                                              Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = Swashbuckler.panache_resource; }),
                                                              CreateRunActions(Common.createContextActionApplyBuff(staggered_buff, Helpers.CreateContextDuration(1), dispellable: false))
                                                              );
