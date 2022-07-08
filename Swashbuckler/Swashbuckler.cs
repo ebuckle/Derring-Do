@@ -842,6 +842,7 @@ namespace Derring_Do
                                                              Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Create<AbilityDeliverAttackWithWeaponOnHit>(),
                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; }),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              CreateRunActions(Common.createContextActionApplyBuff(confusion_buff, Helpers.CreateContextDuration(1), dispellable: false))
                                                              );
             Common.setAsFullRoundAction(targeted_strike_head_ability);
@@ -862,6 +863,7 @@ namespace Derring_Do
                                                              Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits, immune_to_prone }; a.UnlessFact = null; }),
                                                              Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; }),
                                                              CreateRunActions(Helpers.Create<ContextActionKnockdownTarget>())
                                                              );
@@ -883,6 +885,7 @@ namespace Derring_Do
                                                              Create<AbilityTargetHasNoFactUnless>(a => { a.CheckedFacts = new BlueprintUnitFact[] { immune_to_crits }; a.UnlessFact = null; }),
                                                              Create<AbilityTargetNotImmuneToPrecision>(),
                                                              Create<AbilityDeliverAttackWithWeaponOnHit>(),
+                                                             Helpers.Create<AbilityDeliverHitWithMeleeWeapon>(),
                                                              Create<AbilityResourceLogic>(a => { a.IsSpendResource = true; a.Amount = 1; a.CostIsCustom = false; a.RequiredResource = panache_resource; }),
                                                              CreateRunActions(Common.createContextActionApplyBuff(staggered_buff, Helpers.CreateContextDuration(1), dispellable: false))
                                                              );
